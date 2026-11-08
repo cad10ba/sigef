@@ -1,0 +1,7 @@
+{
+  "name": "SIGEF – Sistema Integrado de Gestão da Educação Física",
+  "description": "Sistema completo para gestão de espaços esportivos, acervo de materiais e empréstimos da Coordenação de Educação Física (COEF) do Instituto Federal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
