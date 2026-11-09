@@ -6,6 +6,10 @@
 -- 1. Acesse o painel do Supabase: https://supabase.com/dashboard/project/hvzvhqgfcozaprywordg
 -- 2. Vá em "SQL Editor" no menu lateral esquerdo
 -- 3. Cole este script e clique em "RUN"
+--
+-- ATENÇÃO: as políticas no fim deste arquivo são PERMISSIVAS. Rode em seguida
+-- `supabase_rls_policies.sql` (nega anon, restringe app_users, imutabiliza
+-- loans) — é ele que define a segurança vigente.
 -- ====================================================================
 
 -- 1. Tabela de Espaços Esportivos

@@ -1,4 +1,8 @@
 -- ====================================================================
+-- OBSOLETO: este script deixa políticas abertas a `anon` (USING (true)) em
+-- requesters, loans, reservations e app_users. A versão vigente, que nega o
+-- anônimo, é `supabase_rls_policies.sql` — rode-a por último.
+--
 -- SIGEF - Sistema Integrado de Gestão da Educação Física (COEF - IF)
 -- SCRIPT DE CORREÇÃO E ENDURECIMENTO DAS POLÍTICAS DE RLS (SEGURANÇA)
 --

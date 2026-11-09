@@ -1,5 +1,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { APP_USERS_SECURITY_SQL, SIGEF_AUTH_FUNCTIONS_SQL } from './authSql';
+// Script de RLS versionado no repositório (uma única fonte para o app e para o
+// SQL Editor): nada de política permissiva embutida em string no código.
+import rlsPoliciesSql from '../../supabase_rls_policies.sql?raw';
 import {
   Space,
   Material,
@@ -286,68 +289,18 @@ CREATE POLICY "Regulation delete" ON public.regulation FOR DELETE USING (false);
 
 -- RPC de autenticação (login, cadastro e troca de senha com hash)
 ${SIGEF_AUTH_FUNCTIONS_SQL}
-`;
 
-export const SUPABASE_RLS_HARDENING_SQL = `-- ====================================================================
--- SIGEF - SCRIPT DE CORREÇÃO E ENDURECIMENTO DAS POLÍTICAS DE RLS
--- Execute este script no SQL Editor do Supabase para corrigir vulnerabilidades:
--- https://supabase.com/dashboard/project/\${SUPABASE_PROJECT_ID}/sql
 -- ====================================================================
-
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
-${APP_USERS_SECURITY_SQL}
-
-${SIGEF_AUTH_FUNCTIONS_SQL}
-
--- 3. IMUTABILIDADE DO HISTÓRICO DE EMPRÉSTIMOS (BLOQUEIO TOTAL DE DELETE)
-DROP POLICY IF EXISTS "Public loans access" ON public.loans;
-DROP POLICY IF EXISTS "Loans select" ON public.loans;
-DROP POLICY IF EXISTS "Loans insert" ON public.loans;
-DROP POLICY IF EXISTS "Loans update" ON public.loans;
-DROP POLICY IF EXISTS "Loans delete" ON public.loans;
-
-CREATE POLICY "Loans select" ON public.loans FOR SELECT USING (true);
-CREATE POLICY "Loans insert" ON public.loans FOR INSERT WITH CHECK (id IS NOT NULL AND term_number IS NOT NULL);
-CREATE POLICY "Loans update" ON public.loans FOR UPDATE USING (true) WITH CHECK (true);
-CREATE POLICY "Loans delete" ON public.loans FOR DELETE USING (false);
-
--- 4. PROTEÇÃO CONTRA EXCLUSÃO DO REGULAMENTO
-DROP POLICY IF EXISTS "Public regulation access" ON public.regulation;
-DROP POLICY IF EXISTS "Regulation select" ON public.regulation;
-DROP POLICY IF EXISTS "Regulation update" ON public.regulation;
-DROP POLICY IF EXISTS "Regulation delete" ON public.regulation;
-
-CREATE POLICY "Regulation select" ON public.regulation FOR SELECT USING (true);
-CREATE POLICY "Regulation update" ON public.regulation FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Regulation delete" ON public.regulation FOR DELETE USING (false);
-
--- 5. VALIDAÇÃO DE ESTOQUE NÃO-NEGATIVO
-DROP POLICY IF EXISTS "Public materials access" ON public.materials;
-DROP POLICY IF EXISTS "Materials select" ON public.materials;
-DROP POLICY IF EXISTS "Materials write" ON public.materials;
-
-CREATE POLICY "Materials select" ON public.materials FOR SELECT USING (true);
-CREATE POLICY "Materials write" ON public.materials FOR ALL USING (true)
-WITH CHECK (total_quantity >= 0 AND available_quantity >= 0);
-
-DO \$\$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_materials_quantities') THEN
-        ALTER TABLE public.materials ADD CONSTRAINT chk_materials_quantities
-        CHECK (total_quantity >= 0 AND available_quantity >= 0);
-    END IF;
-END \$\$;
-
--- 6. INTEGRIDADE DE RESERVAS
-DO \$\$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_reservations_times') THEN
-        ALTER TABLE public.reservations ADD CONSTRAINT chk_reservations_times
-        CHECK (end_time > start_time);
-    END IF;
-END \$\$;
+-- RLS restritiva aplicada por ÚLTIMO: remove as políticas permissivas acima
+-- e recria o conjunto fechado (fonte única: supabase_rls_policies.sql)
+-- ====================================================================
+${rlsPoliciesSql}
 `;
+
+// Script de RLS restritiva (fonte única: supabase_rls_policies.sql na raiz).
+// Exibido/copiado pelo app: sem políticas permissivas, dados pessoais só com
+// sessão do Supabase Auth e histórico de empréstimos imutável.
+export const SUPABASE_RLS_HARDENING_SQL = rlsPoliciesSql;
 
 // Helper conversion functions (CamelCase <-> snake_case)
 export function spaceToRow(s: Space) {

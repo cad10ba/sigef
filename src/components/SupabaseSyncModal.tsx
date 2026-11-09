@@ -386,7 +386,7 @@ export const SupabaseSyncModal: React.FC<SupabaseSyncModalProps> = ({ isOpen, on
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                 <Terminal className="w-4 h-4 text-emerald-400" />
-                <span>Script SQL de Endurecimento RLS (supabase_rls_hardening.sql)</span>
+                <span>Script SQL de Endurecimento RLS (supabase_rls_policies.sql)</span>
               </span>
               <button
                 onClick={() => handleCopySQL('rls')}
