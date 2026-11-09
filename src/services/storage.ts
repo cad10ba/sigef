@@ -408,7 +408,7 @@ export const sigefStorage = {
         registration: newUser.registration,
         courseOrDepartment: data.department?.trim() || 'Coordenação de Educação Física (COEF)',
         email: newUser.email,
-        phone: data.phone?.trim() || '(85) 9',
+        phone: data.phone?.trim() || '(73) 9',
         isBlocked: false,
       };
       requesters.push(newReq);

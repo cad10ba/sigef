@@ -22,7 +22,7 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
   const [registration, setRegistration] = useState('');
   const [role, setRole] = useState<UserRole>('docente');
   const [department, setDepartment] = useState('Coordenação de Educação Física (COEF)');
-  const [phone, setPhone] = useState('(85) 9');
+  const [phone, setPhone] = useState('(73) 9');
   const [password, setPassword] = useState('123456');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -154,7 +154,7 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
                 type="text"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="(85) 9..."
+                placeholder="(73) 9..."
                 className="w-full h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
               />
             </div>

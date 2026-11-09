@@ -40,7 +40,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [regRegistration, setRegRegistration] = useState('');
   const [regRole, setRegRole] = useState<UserRole>(() => (hasUsers ? 'docente' : 'admin'));
   const [regDepartment, setRegDepartment] = useState('Coordenação de Educação Física (COEF)');
-  const [regPhone, setRegPhone] = useState('(85) 9');
+  const [regPhone, setRegPhone] = useState('(73) 9');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
@@ -315,7 +315,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     type="text"
                     value={regPhone}
                     onChange={(e) => setRegPhone(e.target.value)}
-                    placeholder="(85) 9..."
+                    placeholder="(73) 9..."
                     className="w-full h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 font-mono placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
                   />
                 </div>

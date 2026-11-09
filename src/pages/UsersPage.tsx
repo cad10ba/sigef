@@ -88,7 +88,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
       courseOrDepartment: 'Licenciatura em Educação Física',
       classGroup: '',
       email: '',
-      phone: '(85) 9',
+      phone: '(73) 9',
       supervisorName: '',
       shift: 'Matutino',
       workloadHours: 20,
@@ -697,7 +697,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                     type="text"
                     value={userForm.phone}
                     onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
-                    placeholder="(85) 9..."
+                    placeholder="(73) 9..."
                     className="w-full h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 font-mono focus:outline-none"
                   />
                 </div>
