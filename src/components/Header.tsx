@@ -11,7 +11,6 @@ import {
   PackagePlus,
   Boxes,
   ClipboardPenLine,
-  UserCheck,
   UserPlus,
   LogOut,
   Database,
@@ -26,8 +25,8 @@ import { sigefStorage } from '../services/storage';
 
 interface HeaderProps {
   currentUser: UserProfile;
-  allUsers: UserProfile[];
-  onSelectUser: (user: UserProfile) => void;
+  allUsers?: UserProfile[];
+  onSelectUser?: (user: UserProfile) => void;
   onOpenNewReservation: () => void;
   onOpenNewLoan: () => void;
   onOpenNewMaterial: () => void;
@@ -536,97 +535,84 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {isUserMenuOpen && (
-              <div className="absolute right-0 mt-2 w-72 bg-[#102027] border border-white/15 rounded-2xl shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <div className="pb-2.5 mb-2.5 border-b border-white/10">
-                  <p className="font-semibold text-xs text-white">{currentUser.name}</p>
-                  <p className="text-[11px] text-slate-400">{currentUser.registration}</p>
-                  <p className="text-[11px] text-emerald-400 font-medium">{currentUser.roleLabel}</p>
+              <div className="absolute right-0 mt-2 w-72 bg-[#102027] border border-white/15 rounded-2xl shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95 duration-100">
+                {/* User Identity Card */}
+                <div className="flex items-center gap-3 pb-3 mb-3 border-b border-white/10">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-700/80 text-white font-bold flex items-center justify-center text-sm shadow-sm border border-emerald-500/30 shrink-0">
+                    {currentUser.name
+                      .split(' ')
+                      .map((p) => p[0])
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .join('')}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm text-white truncate">{currentUser.name}</p>
+                    <p className="text-[11px] text-slate-400 font-mono truncate">{currentUser.registration}</p>
+                    <span className="inline-block text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mt-1">
+                      {currentUser.roleLabel}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="text-[11px] uppercase font-bold text-slate-400 px-2 mb-1.5">
-                  Alternar Perfil Simulado:
-                </div>
-
-                <div className="space-y-1">
-                  {allUsers.map((user) => (
+                {/* Actions */}
+                <div className="space-y-1.5 pt-1">
+                  {currentUser.role === 'admin' && onOpenNewUserModal && (
                     <button
-                      key={user.id}
                       onClick={() => {
-                        onSelectUser(user);
                         setIsUserMenuOpen(false);
+                        onOpenNewUserModal();
                       }}
-                      className={`w-full flex items-start gap-2.5 p-2 rounded-xl text-left text-xs transition-colors ${
-                        user.id === currentUser.id
-                          ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/30'
-                          : 'hover:bg-white/5 text-slate-300'
-                      }`}
+                      className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-emerald-300 text-xs font-semibold flex items-center gap-2.5 border border-emerald-500/20 transition-colors"
                     >
-                      <UserCheck
-                        className={`w-4 h-4 mt-0.5 shrink-0 ${
-                          user.id === currentUser.id ? 'text-emerald-400' : 'text-slate-500'
-                        }`}
-                      />
-                      <div>
-                        <span className="font-semibold block">{user.name}</span>
-                        <span className="text-[10px] opacity-75">{user.roleLabel}</span>
-                      </div>
+                      <UserPlus className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>+ Cadastrar Novo Usuário</span>
                     </button>
-                  ))}
+                  )}
+
+                  {currentUser.role === 'admin' && onOpenSupabaseModal && (
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        onOpenSupabaseModal();
+                      }}
+                      className="w-full py-2 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-semibold flex items-center gap-2.5 border border-emerald-500/20 transition-colors"
+                    >
+                      <Database className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Banco Supabase (PostgreSQL)</span>
+                    </button>
+                  )}
+
+                  {onLogout && (
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        onLogout();
+                      }}
+                      className="w-full py-2 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-semibold flex items-center gap-2.5 border border-rose-500/20 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4 text-rose-400 shrink-0" />
+                      <span>Sair da Conta (Logout)</span>
+                    </button>
+                  )}
                 </div>
 
-                {onOpenNewUserModal && (
-                  <button
-                    onClick={() => {
-                      setIsUserMenuOpen(false);
-                      onOpenNewUserModal();
-                    }}
-                    className="mt-2 w-full py-2 px-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-2 border border-emerald-500/20 transition-colors"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    <span>+ Cadastrar Novo Usuário</span>
-                  </button>
+                {currentUser.role === 'admin' && (
+                  <div className="mt-3 pt-2.5 border-t border-white/10 flex justify-between items-center text-xs text-slate-400 px-1">
+                    <span>SIGEF COEF</span>
+                    <button
+                      onClick={() => {
+                        if (confirm('Deseja limpar todos os cadastros e resetar o sistema em branco?')) {
+                          sigefStorage.resetToInitialData();
+                          window.location.reload();
+                        }
+                      }}
+                      className="text-slate-400 hover:text-rose-400 underline text-[11px] transition-colors"
+                    >
+                      Limpar Dados
+                    </button>
+                  </div>
                 )}
-
-                {currentUser.role === 'admin' && onOpenSupabaseModal && (
-                  <button
-                    onClick={() => {
-                      setIsUserMenuOpen(false);
-                      onOpenSupabaseModal();
-                    }}
-                    className="mt-1.5 w-full py-2 px-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-2 border border-emerald-500/20 transition-colors"
-                  >
-                    <Database className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Banco Supabase (PostgreSQL)</span>
-                  </button>
-                )}
-
-                {onLogout && (
-                  <button
-                    onClick={() => {
-                      setIsUserMenuOpen(false);
-                      onLogout();
-                    }}
-                    className="mt-1.5 w-full py-2 px-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-semibold flex items-center justify-center gap-2 border border-rose-500/20 transition-colors"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Sair da Conta (Logout)</span>
-                  </button>
-                )}
-
-                <div className="mt-3 pt-2.5 border-t border-white/10 flex justify-between items-center text-xs text-slate-400 px-1">
-                  <span>SIGEF COEF</span>
-                  <button
-                    onClick={() => {
-                      if (confirm('Deseja limpar todos os cadastros e resetar o sistema em branco?')) {
-                        sigefStorage.resetToInitialData();
-                        window.location.reload();
-                      }
-                    }}
-                    className="text-slate-400 hover:text-rose-400 underline text-[11px] transition-colors"
-                  >
-                    Limpar Dados
-                  </button>
-                </div>
               </div>
             )}
           </div>
