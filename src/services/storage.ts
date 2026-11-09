@@ -65,6 +65,29 @@ async function safeSupabaseDelete(table: string, id: string) {
   }
 }
 
+async function safeSupabaseDeleteMultiple(table: string, ids: string[]) {
+  try {
+    if (!ids || ids.length === 0) return;
+    const { error } = await supabase.from(table).delete().in('id', ids);
+    if (error && error.code !== 'PGRST205') {
+      console.warn(`Supabase delete multiple from ${table} note:`, error.message);
+    }
+  } catch {
+    // Graceful offline/missing tables fallback
+  }
+}
+
+async function safeSupabaseDeleteAll(table: string) {
+  try {
+    const { error } = await supabase.from(table).delete().neq('id', '');
+    if (error && error.code !== 'PGRST205') {
+      console.warn(`Supabase delete all from ${table} note:`, error.message);
+    }
+  } catch {
+    // Graceful offline/missing tables fallback
+  }
+}
+
 const STORAGE_KEYS = {
   CURRENT_USER: 'sigef_current_user_v2_blank',
   AUTH_USER: 'sigef_auth_user_v2_blank',
@@ -440,6 +463,57 @@ export const sigefStorage = {
     setStoredItem(STORAGE_KEYS.MATERIALS, list);
     this.refreshAllKitStatuses();
     safeSupabaseDelete('materials', materialId);
+  },
+
+  deleteMultipleMaterials(materialIds: string[]): void {
+    if (!materialIds || materialIds.length === 0) return;
+    const idSet = new Set(materialIds);
+    const list = this.getMaterials().filter((m) => !idSet.has(m.id));
+    setStoredItem(STORAGE_KEYS.MATERIALS, list);
+    this.refreshAllKitStatuses();
+    safeSupabaseDeleteMultiple('materials', materialIds);
+  },
+
+  clearAllMaterials(): void {
+    setStoredItem(STORAGE_KEYS.MATERIALS, []);
+    this.refreshAllKitStatuses();
+    safeSupabaseDeleteAll('materials');
+  },
+
+  saveMaterialsBatch(newMaterials: Material[], mode: 'add' | 'replace' = 'add'): void {
+    if (!newMaterials || newMaterials.length === 0) return;
+    let list = this.getMaterials();
+
+    if (mode === 'replace') {
+      list = [...newMaterials];
+      safeSupabaseDeleteAll('materials');
+    } else {
+      newMaterials.forEach((item) => {
+        const existingIdx = list.findIndex(
+          (m) =>
+            m.id === item.id ||
+            (m.patrimonyNumber &&
+              item.patrimonyNumber &&
+              m.patrimonyNumber.trim().toLowerCase() === item.patrimonyNumber.trim().toLowerCase())
+        );
+        if (existingIdx >= 0) {
+          list[existingIdx] = { ...list[existingIdx], ...item, id: list[existingIdx].id };
+        } else {
+          list.push(item);
+        }
+      });
+    }
+
+    setStoredItem(STORAGE_KEYS.MATERIALS, list);
+    this.refreshAllKitStatuses();
+
+    // Upsert into Supabase in batch
+    try {
+      const rows = newMaterials.map(materialToRow);
+      safeSupabaseUpsert('materials', rows);
+    } catch {
+      // Graceful fallback
+    }
   },
 
   adjustMaterialStock(
