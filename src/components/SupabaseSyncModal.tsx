@@ -259,13 +259,13 @@ export const SupabaseSyncModal: React.FC<SupabaseSyncModalProps> = ({ isOpen, on
                 </div>
                 <div className="text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-white">Proteção da Conta Master da Coordenação (user-admin)</span>
+                    <span className="font-bold text-white">Proteção das Contas de Administrador</span>
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                       Blindado
                     </span>
                   </div>
                   <p className="text-slate-300 mt-1 leading-relaxed">
-                    Criada regra que impede a exclusão ou a remoção do papel de administrador da conta master institucional (SIAPE 1852024 - Cristiano Araujo Dias).
+                    Políticas de segurança do banco que protegem as contas com papel de administrador da Coordenação contra exclusões ou alterações indevidas.
                   </p>
                 </div>
               </div>

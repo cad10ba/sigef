@@ -29,19 +29,8 @@ export const DEFAULT_SPORT_CATEGORIES: SportCategory[] = [
   { id: 'beach_tennis', name: 'Beach Tennis' },
 ];
 
-// Initial Admin user to allow full operation and configuration of the system
-export const INITIAL_USERS: UserProfile[] = [
-  {
-    id: 'user-admin',
-    name: 'Cristiano Araujo Dias',
-    role: 'admin',
-    registration: 'SIAPE 1852024',
-    email: 'cristianodias@ifba.edu.br',
-    roleLabel: 'Coordenação de Educação Física (Administrador)',
-    password: '833604',
-    createdAt: new Date().toISOString(),
-  },
-];
+// System starts completely blank without any pre-registered admin. Users/Admin are created directly at login.
+export const INITIAL_USERS: UserProfile[] = [];
 
 // Completely blank initial database: no pre-registered spaces, materials, kits, schedules or requesters
 export const INITIAL_SPACES: Space[] = [];

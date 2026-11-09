@@ -191,25 +191,16 @@ export const sigefStorage = {
       setStoredItem(STORAGE_KEYS.CATEGORIES, DEFAULT_SPORT_CATEGORIES);
     }
     if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-      setStoredItem(STORAGE_KEYS.USERS, INITIAL_USERS);
+      setStoredItem(STORAGE_KEYS.USERS, []);
     } else {
-      // Sync admin user profile
-      const users = this.getUsers();
-      const adminIdx = users.findIndex((u) => u.id === 'user-admin' || u.role === 'admin');
-      if (adminIdx >= 0) {
-        users[adminIdx] = {
-          ...users[adminIdx],
-          name: 'Cristiano Araujo Dias',
-          registration: 'SIAPE 1852024',
-          email: 'cristianodias@ifba.edu.br',
-          password: '833604',
-          roleLabel: 'Coordenação de Educação Física (Administrador)',
-        };
-        setStoredItem(STORAGE_KEYS.USERS, users);
-      }
+      // Remove any previously pre-seeded hardcoded admin
+      const users = this.getUsers().filter((u) => u.id !== 'user-admin');
+      setStoredItem(STORAGE_KEYS.USERS, users);
     }
-    if (!localStorage.getItem(STORAGE_KEYS.CURRENT_USER)) {
-      setStoredItem(STORAGE_KEYS.CURRENT_USER, INITIAL_USERS[0]);
+    const authUser = this.getAuthUser();
+    if (authUser && authUser.id === 'user-admin') {
+      this.setAuthUser(null);
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
     }
     this.refreshAllKitStatuses();
     this.syncFromSupabase().catch(() => {});
@@ -224,14 +215,15 @@ export const sigefStorage = {
     setStoredItem(STORAGE_KEYS.RESERVATIONS, INITIAL_RESERVATIONS);
     setStoredItem(STORAGE_KEYS.NOTICES, INITIAL_NOTICES);
     setStoredItem(STORAGE_KEYS.REGULATION, INITIAL_REGULATION);
-    setStoredItem(STORAGE_KEYS.USERS, INITIAL_USERS);
-    setStoredItem(STORAGE_KEYS.CURRENT_USER, INITIAL_USERS[0]);
+    setStoredItem(STORAGE_KEYS.USERS, []);
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
     this.refreshAllKitStatuses();
   },
 
   // Users & Auth profile
   getUsers(): UserProfile[] {
-    return getStoredItem<UserProfile[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
+    return getStoredItem<UserProfile[]>(STORAGE_KEYS.USERS, []);
   },
 
   getAuthUser(): UserProfile | null {
@@ -256,7 +248,18 @@ export const sigefStorage = {
   getCurrentUser(): UserProfile {
     const auth = this.getAuthUser();
     if (auth) return auth;
-    return getStoredItem<UserProfile>(STORAGE_KEYS.CURRENT_USER, INITIAL_USERS[0]);
+    const stored = getStoredItem<UserProfile | null>(STORAGE_KEYS.CURRENT_USER, null);
+    if (stored) return stored;
+    const users = this.getUsers();
+    if (users.length > 0) return users[0];
+    return {
+      id: 'temp-admin',
+      name: 'Administrador',
+      role: 'admin',
+      registration: 'SIAPE',
+      email: 'admin@ifba.edu.br',
+      roleLabel: 'Coordenação de Educação Física (Administrador)',
+    };
   },
 
   setCurrentUser(user: UserProfile) {
@@ -269,19 +272,26 @@ export const sigefStorage = {
     const cleanId = identifier.trim().toLowerCase();
     const cleanPass = password.trim();
 
+    if (users.length === 0) {
+      return {
+        success: false,
+        message: 'Nenhum usuário cadastrado no sistema ainda. Cadastre o Administrador na aba "Criar Nova Conta".',
+      };
+    }
+
     const user = users.find(
       (u) =>
         u.email.toLowerCase() === cleanId ||
         u.registration.toLowerCase() === cleanId ||
         (cleanId.replace(/\D/g, '') && u.registration.toLowerCase().replace(/\D/g, '') === cleanId.replace(/\D/g, '')) ||
-        (cleanId === 'admin' && (u.role === 'admin' || u.id === 'user-admin'))
+        (cleanId === 'admin' && u.role === 'admin')
     );
 
     if (!user) {
       return { success: false, message: 'Usuário não encontrado. Verifique seu e-mail institucional ou matrícula/SIAPE.' };
     }
 
-    const expectedPass = user.password || (user.role === 'admin' ? '833604' : '123456');
+    const expectedPass = user.password || '123456';
     if (cleanPass !== expectedPass) {
       return { success: false, message: 'Senha incorreta. Verifique suas credenciais e tente novamente.' };
     }

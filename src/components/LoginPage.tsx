@@ -24,7 +24,9 @@ interface LoginPageProps {
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+  const usersList = sigefStorage.getUsers();
+  const hasUsers = usersList.length > 0;
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>(() => (hasUsers ? 'login' : 'register'));
 
   // Login form state
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -36,7 +38,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regRegistration, setRegRegistration] = useState('');
-  const [regRole, setRegRole] = useState<UserRole>('docente');
+  const [regRole, setRegRole] = useState<UserRole>(() => (hasUsers ? 'docente' : 'admin'));
   const [regDepartment, setRegDepartment] = useState('Coordenação de Educação Física (COEF)');
   const [regPhone, setRegPhone] = useState('(85) 9');
   const [regPassword, setRegPassword] = useState('');
@@ -143,6 +145,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
         {/* Auth Card Container */}
         <div className="bg-[#102027] border border-white/15 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+          {/* Initial Setup Banner when system is fresh */}
+          {!hasUsers && (
+            <div className="mb-5 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs flex items-start gap-2.5">
+              <Shield className="w-4 h-4 mt-0.5 shrink-0 text-emerald-400" />
+              <div>
+                <span className="font-bold block text-white">Configuração Inicial do SIGEF:</span>
+                <span className="text-[11px] text-slate-300 leading-relaxed block mt-0.5">
+                  Nenhum usuário cadastrado no sistema. Cadastre a conta do <strong>Administrador (COEF)</strong> na aba abaixo para definir seu login e senha institucionais.
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Tab Selector */}
           <div className="flex p-1 rounded-2xl bg-[#0B1418] border border-white/10 mb-6">
             <button
@@ -167,7 +182,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               }`}
             >
               <UserPlus className="w-4 h-4" />
-              <span>Criar Nova Conta</span>
+              <span>{!hasUsers ? 'Cadastrar Administrador' : 'Criar Nova Conta'}</span>
             </button>
           </div>
 
@@ -184,7 +199,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     type="text"
                     value={loginIdentifier}
                     onChange={(e) => setLoginIdentifier(e.target.value)}
-                    placeholder="Ex: 1852024 ou cristianodias@ifba.edu.br"
+                    placeholder="Ex: Matrícula, SIAPE ou e-mail institucional"
                     className="w-full h-11 pl-10 pr-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs sm:text-sm text-slate-100 placeholder:text-slate-500 font-mono focus:outline-none focus:border-emerald-500 transition-colors"
                     required
                     autoFocus
@@ -269,10 +284,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     onChange={(e) => setRegRole(e.target.value as UserRole)}
                     className="w-full h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none"
                   >
+                    <option value="admin">Coordenação COEF (Administrador)</option>
                     <option value="docente">Docente de Educação Física</option>
                     <option value="estagiario">Estagiário de Ed. Física</option>
                     <option value="monitor">Monitor / Bolsista de Ed. Física</option>
-                    <option value="admin">Coordenação COEF (Administrador)</option>
                   </select>
                 </div>
               </div>

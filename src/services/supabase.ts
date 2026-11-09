@@ -349,17 +349,6 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.sigef_login(TEXT, TEXT) TO anon, authenticated;
-
--- Criar/Atualizar Usuário Administrador Inicial
-INSERT INTO public.app_users (id, name, role, registration, email, role_label, password)
-VALUES ('user-admin', 'Cristiano Araujo Dias', 'admin', 'SIAPE 1852024', 'cristianodias@ifba.edu.br', 'Coordenação de Educação Física (Administrador)', '833604')
-ON CONFLICT (id) DO UPDATE SET
-  name = EXCLUDED.name,
-  role = EXCLUDED.role,
-  registration = EXCLUDED.registration,
-  email = EXCLUDED.email,
-  role_label = EXCLUDED.role_label,
-  password = EXCLUDED.password;
 `;
 
 export const SUPABASE_RLS_HARDENING_SQL = `-- ====================================================================
@@ -487,17 +476,6 @@ BEGIN
         CHECK (end_time > start_time);
     END IF;
 END \$\$;
-
--- 7. REFORÇO DA CONTA DO ADMINISTRADOR GERAL
-INSERT INTO public.app_users (id, name, role, registration, email, role_label, password)
-VALUES ('user-admin', 'Cristiano Araujo Dias', 'admin', 'SIAPE 1852024', 'cristianodias@ifba.edu.br', 'Coordenação de Educação Física (Administrador)', '833604')
-ON CONFLICT (id) DO UPDATE SET
-  name = EXCLUDED.name,
-  role = EXCLUDED.role,
-  registration = EXCLUDED.registration,
-  email = EXCLUDED.email,
-  role_label = EXCLUDED.role_label,
-  password = EXCLUDED.password;
 `;
 
 // Helper conversion functions (CamelCase <-> snake_case)
