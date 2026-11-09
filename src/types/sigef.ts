@@ -61,7 +61,13 @@ export interface Reservation {
   notes?: string;
 }
 
-export type MaterialCategory =
+export interface SportCategory {
+  id: string;
+  name: string;
+  isCustom?: boolean;
+}
+
+export type StandardMaterialCategory =
   | 'futebol'
   | 'volei'
   | 'basquete'
@@ -72,6 +78,8 @@ export type MaterialCategory =
   | 'lutas'
   | 'musculacao'
   | 'recreacao';
+
+export type MaterialCategory = StandardMaterialCategory | (string & {});
 
 export type ConservationState = 'novo' | 'bom' | 'regular' | 'danificado' | 'baixado';
 

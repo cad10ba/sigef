@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { Material, MaterialCategory, ConservationState } from '../types/sigef';
+import { sigefStorage } from '../services/storage';
 
 // Canonical categories with user-friendly names
 export const VALID_CATEGORIES: { key: MaterialCategory; label: string }[] = [
@@ -44,6 +45,11 @@ export function normalizeCategory(input?: string): MaterialCategory {
     return 'danca';
   if (clean.includes('muscul') || clean.includes('peso') || clean.includes('halter') || clean.includes('academia'))
     return 'musculacao';
+
+  // Support any custom user-added category (e.g. Badminton, Natação, Beach Tennis)
+  if (clean.length > 0) {
+    return clean;
+  }
 
   return 'recreacao';
 }
@@ -152,7 +158,7 @@ const TEMPLATE_SAMPLE_ROWS = [
 const INSTRUCTIONS_ROWS = [
   { Campo: 'Nº de Patrimônio', Obrigatório: 'Não', Descrição: 'Código de tombo institucional. Se deixar em branco, o SIGEF gera um código automático (ex: PAT-2026-XXXX).' },
   { Campo: 'Nome do Material', Obrigatório: 'SIM', Descrição: 'Nome claro do item (Ex: Bola de Vôlei, Cone 50cm, Halter 5kg).' },
-  { Campo: 'Categoria', Obrigatório: 'Não', Descrição: 'Opções válidas: volei, futsal, futebol, basquete, handebol, atletismo, lutas, danca, musculacao, recreacao.' },
+  { Campo: 'Categoria', Obrigatório: 'Não', Descrição: 'Modalidade esportiva (Ex: volei, futsal, basquete, handebol, atletismo, lutas, danca, musculacao, badminton, natacao, etc.). Qualquer modalidade digitada é cadastrada automaticamente no acervo do SIGEF!' },
   { Campo: 'Quantidade Total', Obrigatório: 'SIM', Descrição: 'Número total de unidades existentes no campus (número inteiro maior ou igual a 0).' },
   { Campo: 'Quantidade Disponível', Obrigatório: 'Não', Descrição: 'Quantidade disponível para empréstimo imediato. Se omitido, assume o total.' },
   { Campo: 'Estado', Obrigatório: 'Não', Descrição: 'Estado de conservação: novo, bom, regular, danificado, baixado (padrão: bom).' },
@@ -240,12 +246,12 @@ export function downloadMaterialsCSVTemplate(): void {
  */
 export function exportMaterialsToExcel(materials: Material[], campusName = 'Campus IF'): void {
   const rows = materials.map((m) => {
-    const catObj = VALID_CATEGORIES.find((c) => c.key === m.category);
+    const catLabel = sigefStorage.getCategoryLabel(m.category);
     const stateObj = VALID_STATES.find((s) => s.key === m.conservationState);
     return {
       'Nº de Patrimônio': m.patrimonyNumber,
       'Nome do Material': m.name,
-      'Categoria / Modalidade': catObj ? catObj.label : m.category,
+      'Categoria / Modalidade': catLabel,
       'Qtd Total': m.totalQuantity,
       'Qtd Disponível': m.availableQuantity,
       'Emprestados / Em Uso': Math.max(0, m.totalQuantity - m.availableQuantity),
@@ -354,7 +360,11 @@ export async function parseMaterialsSpreadsheet(
         `PAT-${new Date().getFullYear()}-${String(100 + idx + 1).padStart(4, '0')}`;
 
       const rawCategory = getVal('Categoria', 'Modalidade', 'Esporte', 'category');
-      const category = normalizeCategory(String(rawCategory));
+      const cleanRawCategory = String(rawCategory || '').trim();
+      if (cleanRawCategory) {
+        sigefStorage.addCategory(cleanRawCategory);
+      }
+      const category = normalizeCategory(cleanRawCategory);
 
       const rawTotal = getVal('Quantidade Total', 'Qtd Total', 'Total', 'Quantidade', 'Qtd', 'totalQuantity');
       const parsedTotal = parseInt(String(rawTotal).replace(/[^\d]/g, ''), 10);

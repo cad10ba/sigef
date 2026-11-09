@@ -10,6 +10,7 @@ import {
   UserProfile,
   UserRole,
   ReturnItemState,
+  SportCategory,
 } from '../types/sigef';
 import {
   INITIAL_USERS,
@@ -21,6 +22,7 @@ import {
   INITIAL_RESERVATIONS,
   INITIAL_NOTICES,
   INITIAL_REGULATION,
+  DEFAULT_SPORT_CATEGORIES,
 } from '../data/initialData';
 import {
   supabase,
@@ -100,6 +102,7 @@ const STORAGE_KEYS = {
   RESERVATIONS: 'sigef_reservations_v2_blank',
   NOTICES: 'sigef_notices_v2_blank',
   REGULATION: 'sigef_regulation_v2_blank',
+  CATEGORIES: 'sigef_categories_v2_custom',
   THEME: 'sigef_theme_v2_blank',
 };
 
@@ -183,6 +186,9 @@ export const sigefStorage = {
     }
     if (!localStorage.getItem(STORAGE_KEYS.REGULATION)) {
       setStoredItem(STORAGE_KEYS.REGULATION, INITIAL_REGULATION);
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.CATEGORIES)) {
+      setStoredItem(STORAGE_KEYS.CATEGORIES, DEFAULT_SPORT_CATEGORIES);
     }
     if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
       setStoredItem(STORAGE_KEYS.USERS, INITIAL_USERS);
@@ -572,6 +578,79 @@ export const sigefStorage = {
     const list = this.getKits().filter((k) => k.id !== kitId);
     setStoredItem(STORAGE_KEYS.KITS, list);
     safeSupabaseDelete('kits', kitId);
+  },
+
+  // Sport Categories & Modalities Management
+  getCategories(): SportCategory[] {
+    const stored = getStoredItem<SportCategory[]>(STORAGE_KEYS.CATEGORIES, DEFAULT_SPORT_CATEGORIES);
+    const existingIds = new Set(stored.map((c) => c.id.toLowerCase()));
+    const allCategories = [...stored];
+
+    // Scan materials for any additional custom categories to ensure none are omitted
+    const materials = this.getMaterials();
+    materials.forEach((m) => {
+      if (m.category && !existingIds.has(m.category.toLowerCase().trim())) {
+        const id = m.category.toLowerCase().trim();
+        const name = m.category.charAt(0).toUpperCase() + m.category.slice(1);
+        existingIds.add(id);
+        allCategories.push({ id, name, isCustom: true });
+      }
+    });
+
+    return allCategories;
+  },
+
+  addCategory(name: string): SportCategory {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      return { id: 'recreacao', name: 'Recreação & Jogos' };
+    }
+
+    const categories = this.getCategories();
+    const normalizedName = trimmed.toLowerCase();
+    const existing = categories.find(
+      (c) => c.name.toLowerCase() === normalizedName || c.id.toLowerCase() === normalizedName
+    );
+    if (existing) {
+      return existing;
+    }
+
+    // Generate clean ID from name
+    const cleanId =
+      trimmed
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '') || ('cat_' + Date.now());
+
+    const newCat: SportCategory = {
+      id: cleanId,
+      name: trimmed,
+      isCustom: true,
+    };
+
+    const list = getStoredItem<SportCategory[]>(STORAGE_KEYS.CATEGORIES, DEFAULT_SPORT_CATEGORIES);
+    list.push(newCat);
+    setStoredItem(STORAGE_KEYS.CATEGORIES, list);
+    return newCat;
+  },
+
+  deleteCategory(categoryId: string): void {
+    const list = getStoredItem<SportCategory[]>(STORAGE_KEYS.CATEGORIES, DEFAULT_SPORT_CATEGORIES);
+    const filtered = list.filter((c) => c.id !== categoryId);
+    setStoredItem(STORAGE_KEYS.CATEGORIES, filtered);
+  },
+
+  getCategoryLabel(categoryKey: string): string {
+    if (!categoryKey) return 'Geral';
+    const categories = this.getCategories();
+    const found = categories.find(
+      (c) => c.id.toLowerCase() === categoryKey.toLowerCase() || c.name.toLowerCase() === categoryKey.toLowerCase()
+    );
+    if (found) return found.name;
+    return categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1);
   },
 
   refreshAllKitStatuses(): void {

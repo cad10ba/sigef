@@ -84,7 +84,7 @@ export const KitsPage: React.FC<KitsPageProps> = ({
                 <div className="flex items-start justify-between gap-2 pb-3 border-b border-white/10">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400 block mb-0.5">
-                      Modalidade: {kit.category}
+                      Modalidade: {sigefStorage.getCategoryLabel(kit.category)}
                     </span>
                     <h3 className="font-bold text-base text-white">{kit.name}</h3>
                   </div>

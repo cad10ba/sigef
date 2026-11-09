@@ -385,17 +385,12 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs text-slate-200 focus:outline-none"
           >
-            <option value="all">Todas as Modalidades</option>
-            <option value="volei">Voleibol</option>
-            <option value="futsal">Futsal</option>
-            <option value="futebol">Futebol</option>
-            <option value="basquete">Basquetebol</option>
-            <option value="handebol">Handebol</option>
-            <option value="atletismo">Atletismo</option>
-            <option value="lutas">Lutas & Artes Marciais</option>
-            <option value="danca">Dança & Ginástica</option>
-            <option value="musculacao">Musculação</option>
-            <option value="recreacao">Recreação & Geral</option>
+            <option value="all">Todas as Modalidades ({sigefStorage.getCategories().length})</option>
+            {sigefStorage.getCategories().map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} {c.isCustom ? ' (Personalizada)' : ''}
+              </option>
+            ))}
           </select>
 
           {/* Conservation State Filter */}
@@ -560,7 +555,9 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
 
                     {/* Category */}
                     <td className="p-3.5">
-                      <span className="capitalize text-slate-300 font-medium">{mat.category}</span>
+                      <span className="text-slate-300 font-medium">
+                        {sigefStorage.getCategoryLabel(mat.category)}
+                      </span>
                     </td>
 
                     {/* Quantities */}

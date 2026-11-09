@@ -8,7 +8,26 @@ import {
   NoticeBoardItem,
   CoefRegulation,
   UserProfile,
+  SportCategory,
 } from '../types/sigef';
+
+export const DEFAULT_SPORT_CATEGORIES: SportCategory[] = [
+  { id: 'volei', name: 'Voleibol' },
+  { id: 'futsal', name: 'Futsal' },
+  { id: 'futebol', name: 'Futebol de Campo' },
+  { id: 'basquete', name: 'Basquetebol' },
+  { id: 'handebol', name: 'Handebol' },
+  { id: 'atletismo', name: 'Atletismo' },
+  { id: 'lutas', name: 'Lutas & Artes Marciais' },
+  { id: 'danca', name: 'Dança & Ginástica' },
+  { id: 'musculacao', name: 'Musculação & Funcional' },
+  { id: 'recreacao', name: 'Recreação & Jogos' },
+  { id: 'badminton', name: 'Badminton' },
+  { id: 'tenis_mesa', name: 'Tênis de Mesa' },
+  { id: 'natacao', name: 'Natação & Aquáticos' },
+  { id: 'xadrez', name: 'Xadrez & Tabuleiro' },
+  { id: 'beach_tennis', name: 'Beach Tennis' },
+];
 
 // Initial Admin user to allow full operation and configuration of the system
 export const INITIAL_USERS: UserProfile[] = [

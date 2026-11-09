@@ -25,6 +25,23 @@ export const NewKitModal: React.FC<NewKitModalProps> = ({
   const [category, setCategory] = useState<MaterialCategory>('volei');
   const [items, setItems] = useState<SportKitItem[]>([]);
 
+  // Dynamic Category
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const categories = sigefStorage.getCategories();
+
+  const handleCreateCategory = () => {
+    if (!newCategoryName.trim()) {
+      showToast('Digite o nome da nova modalidade.', 'error');
+      return;
+    }
+    const created = sigefStorage.addCategory(newCategoryName);
+    setCategory(created.id);
+    setNewCategoryName('');
+    setIsAddingCategory(false);
+    showToast(`Modalidade "${created.name}" cadastrada com sucesso!`, 'success');
+  };
+
   useEffect(() => {
     if (kitToEdit) {
       setName(kitToEdit.name);
@@ -140,24 +157,83 @@ export const NewKitModal: React.FC<NewKitModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Modalidade
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as MaterialCategory)}
-                className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-purple-500"
-              >
-                <option value="volei">Voleibol</option>
-                <option value="futsal">Futsal</option>
-                <option value="futebol">Futebol</option>
-                <option value="basquete">Basquete</option>
-                <option value="handebol">Handebol</option>
-                <option value="lutas">Lutas</option>
-                <option value="danca">Dança</option>
-                <option value="atletismo">Atletismo</option>
-                <option value="recreacao">Recreação</option>
-              </select>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-slate-300">
+                  Modalidade
+                </label>
+                {!isAddingCategory && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingCategory(true)}
+                    className="text-[11px] font-semibold text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors px-1 py-0.5 rounded hover:bg-purple-500/10"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>+ Nova</span>
+                  </button>
+                )}
+              </div>
+
+              {isAddingCategory ? (
+                <div className="p-2.5 rounded-xl bg-[#0B1418] border border-purple-500/30 space-y-2 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      autoFocus
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleCreateCategory();
+                        }
+                      }}
+                      placeholder="Ex: Badminton, Natação..."
+                      className="flex-1 h-9 px-2.5 bg-[#102027] border border-white/20 rounded-lg text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCreateCategory}
+                      className="px-2.5 h-9 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 shrink-0"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Salvar</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingCategory(false);
+                        setNewCategoryName('');
+                      }}
+                      className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <select
+                  value={category}
+                  onChange={(e) => {
+                    if (e.target.value === '__NEW__') {
+                      setIsAddingCategory(true);
+                    } else {
+                      setCategory(e.target.value);
+                    }
+                  }}
+                  className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-purple-500 text-xs"
+                >
+                  <optgroup label="Modalidades Disponíveis">
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name} {cat.isCustom ? ' (Personalizada)' : ''}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <option value="__NEW__" className="text-purple-400 font-bold bg-[#0B1418]">
+                    ➕ + Cadastrar nova modalidade...
+                  </option>
+                </select>
+              )}
             </div>
           </div>
 
