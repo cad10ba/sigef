@@ -37,7 +37,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
     onClose();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!currentPassword.trim()) {
@@ -66,7 +66,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
     }
 
     setIsSubmitting(true);
-    const res = sigefStorage.changeSelfPassword(currentPassword, newPassword);
+    const res = await sigefStorage.changeSelfPassword(currentPassword, newPassword);
     setIsSubmitting(false);
 
     if (res.success) {
@@ -176,7 +176,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
 
           <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
-            <span>Sua nova senha será salva localmente e sincronizada com o banco com segurança.</span>
+            <span>Sua senha atual é conferida no servidor e a nova é gravada com hash (bcrypt). Nada é comparado no navegador.</span>
           </div>
 
           <div className="pt-3 border-t border-white/10 flex justify-end gap-2">

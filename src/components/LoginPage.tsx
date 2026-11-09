@@ -21,6 +21,8 @@ interface LoginPageProps {
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const { showToast } = useToast();
+  // O cache de perfis (sem senha) só decide qual tela abrir no primeiro uso.
+  // A validação de credenciais acontece exclusivamente no servidor.
   const usersList = sigefStorage.getUsers();
   const hasUsers = usersList.length > 0;
 
@@ -64,7 +66,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     }
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!regName.trim() || !regEmail.trim() || !regRegistration.trim() || !regPassword.trim()) {
@@ -83,31 +85,29 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      const res = sigefStorage.registerUser({
-        name: regName,
-        email: regEmail,
-        registration: regRegistration,
-        role: 'admin',
-        password: regPassword,
-        department: regDepartment,
-        phone: regPhone,
-      });
-      setIsSubmitting(false);
+    const res = await sigefStorage.registerUser({
+      name: regName,
+      email: regEmail,
+      registration: regRegistration,
+      role: 'admin',
+      password: regPassword,
+      department: regDepartment,
+      phone: regPhone,
+    });
+    setIsSubmitting(false);
 
-      if (res.success && res.user) {
-        showToast(res.message, 'success');
-        setRegName('');
-        setRegEmail('');
-        setRegRegistration('');
-        setRegPassword('');
-        setRegConfirmPassword('');
-        setRegPhone('(73) 9');
-        onLoginSuccess(res.user);
-      } else {
-        showToast(res.message, 'error');
-      }
-    }, 250);
+    if (res.success && res.user) {
+      showToast(res.message, 'success');
+      setRegName('');
+      setRegEmail('');
+      setRegRegistration('');
+      setRegPassword('');
+      setRegConfirmPassword('');
+      setRegPhone('(73) 9');
+      onLoginSuccess(res.user);
+    } else {
+      showToast(res.message, 'error');
+    }
   };
 
   return (

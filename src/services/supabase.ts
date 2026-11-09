@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { APP_USERS_SECURITY_SQL, SIGEF_AUTH_FUNCTIONS_SQL } from './authSql';
 import {
   Space,
   Material,
@@ -183,7 +184,7 @@ CREATE TABLE IF NOT EXISTS public.app_users (
     registration TEXT NOT NULL,
     email TEXT NOT NULL,
     role_label TEXT NOT NULL,
-    password TEXT NOT NULL DEFAULT 'admin',
+    password_hash TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -270,20 +271,8 @@ END $$;
 DROP POLICY IF EXISTS "Public notices access" ON public.notices;
 CREATE POLICY "Notices access" ON public.notices FOR ALL USING (true) WITH CHECK (true);
 
--- 8. Usuários (Proteção de senha e conta administrador)
-DROP POLICY IF EXISTS "Public app_users access" ON public.app_users;
-DROP POLICY IF EXISTS "App users safe select" ON public.app_users;
-DROP POLICY IF EXISTS "App users insert" ON public.app_users;
-DROP POLICY IF EXISTS "App users update" ON public.app_users;
-DROP POLICY IF EXISTS "App users delete" ON public.app_users;
-
-REVOKE SELECT (password) ON public.app_users FROM anon, authenticated;
-GRANT SELECT (id, name, role, registration, email, role_label, created_at) ON public.app_users TO anon, authenticated;
-
-CREATE POLICY "App users safe select" ON public.app_users FOR SELECT USING (true);
-CREATE POLICY "App users insert" ON public.app_users FOR INSERT WITH CHECK (id IS NOT NULL AND email <> '');
-CREATE POLICY "App users update" ON public.app_users FOR UPDATE USING (true) WITH CHECK (id <> 'user-admin' OR role = 'admin');
-CREATE POLICY "App users delete" ON public.app_users FOR DELETE USING (id <> 'user-admin');
+-- 8. Usuários (senhas apenas com hash; privilégios mínimos)
+${APP_USERS_SECURITY_SQL}
 
 -- 9. Regulamento (Sem permissão de exclusão)
 DROP POLICY IF EXISTS "Public regulation access" ON public.regulation;
@@ -295,60 +284,8 @@ CREATE POLICY "Regulation select" ON public.regulation FOR SELECT USING (true);
 CREATE POLICY "Regulation update" ON public.regulation FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Regulation delete" ON public.regulation FOR DELETE USING (false);
 
--- RPC Segura de Login
-CREATE OR REPLACE FUNCTION public.sigef_login(p_identifier TEXT, p_password TEXT)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-    v_user RECORD;
-    v_clean_id TEXT := LOWER(TRIM(p_identifier));
-    v_clean_pass TEXT := TRIM(p_password);
-    v_digits TEXT := REGEXP_REPLACE(p_identifier, '\D', '', 'g');
-    v_match BOOLEAN := false;
-BEGIN
-    SELECT id, name, role, registration, email, role_label, password, created_at
-    INTO v_user
-    FROM public.app_users
-    WHERE LOWER(email) = v_clean_id
-       OR LOWER(registration) = v_clean_id
-       OR (v_digits <> '' AND REGEXP_REPLACE(registration, '\D', '', 'g') = v_digits)
-       OR (v_clean_id = 'admin' AND (role = 'admin' OR id = 'user-admin'))
-    LIMIT 1;
-
-    IF NOT FOUND THEN
-        RETURN jsonb_build_object('success', false, 'message', 'Usuário não encontrado. Verifique seu e-mail institucional ou matrícula/SIAPE.');
-    END IF;
-
-    IF v_user.password = v_clean_pass THEN
-        v_match := true;
-    ELSIF v_user.password = crypt(v_clean_pass, v_user.password) THEN
-        v_match := true;
-    END IF;
-
-    IF v_match THEN
-        RETURN jsonb_build_object(
-            'success', true,
-            'message', 'Login realizado com sucesso!',
-            'user', jsonb_build_object(
-                'id', v_user.id,
-                'name', v_user.name,
-                'role', v_user.role,
-                'registration', v_user.registration,
-                'email', v_user.email,
-                'roleLabel', v_user.role_label,
-                'createdAt', v_user.created_at
-            )
-        );
-    ELSE
-        RETURN jsonb_build_object('success', false, 'message', 'Senha incorreta. Verifique suas credenciais e tente novamente.');
-    END IF;
-END;
-$$;
-
-GRANT EXECUTE ON FUNCTION public.sigef_login(TEXT, TEXT) TO anon, authenticated;
+-- RPC de autenticação (login, cadastro e troca de senha com hash)
+${SIGEF_AUTH_FUNCTIONS_SQL}
 `;
 
 export const SUPABASE_RLS_HARDENING_SQL = `-- ====================================================================
@@ -359,75 +296,9 @@ export const SUPABASE_RLS_HARDENING_SQL = `-- ==================================
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- 1. CORREÇÃO DE EXPOSIÇÃO DE SENHAS EM APP_USERS
-DROP POLICY IF EXISTS "Public app_users access" ON public.app_users;
-DROP POLICY IF EXISTS "App users safe select" ON public.app_users;
-DROP POLICY IF EXISTS "App users insert" ON public.app_users;
-DROP POLICY IF EXISTS "App users update" ON public.app_users;
-DROP POLICY IF EXISTS "App users delete" ON public.app_users;
+${APP_USERS_SECURITY_SQL}
 
-REVOKE SELECT (password) ON public.app_users FROM anon, authenticated;
-GRANT SELECT (id, name, role, registration, email, role_label, created_at) ON public.app_users TO anon, authenticated;
-
-CREATE POLICY "App users safe select" ON public.app_users FOR SELECT USING (true);
-CREATE POLICY "App users insert" ON public.app_users FOR INSERT WITH CHECK (id IS NOT NULL AND email <> '');
-CREATE POLICY "App users update" ON public.app_users FOR UPDATE USING (true) WITH CHECK (id <> 'user-admin' OR role = 'admin');
-CREATE POLICY "App users delete" ON public.app_users FOR DELETE USING (id <> 'user-admin');
-
--- 2. FUNÇÃO RPC SEGURA DE LOGIN (SEM EXPOR SENHAS)
-CREATE OR REPLACE FUNCTION public.sigef_login(p_identifier TEXT, p_password TEXT)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS \$\$
-DECLARE
-    v_user RECORD;
-    v_clean_id TEXT := LOWER(TRIM(p_identifier));
-    v_clean_pass TEXT := TRIM(p_password);
-    v_digits TEXT := REGEXP_REPLACE(p_identifier, '\\\\D', '', 'g');
-    v_match BOOLEAN := false;
-BEGIN
-    SELECT id, name, role, registration, email, role_label, password, created_at
-    INTO v_user
-    FROM public.app_users
-    WHERE LOWER(email) = v_clean_id
-       OR LOWER(registration) = v_clean_id
-       OR (v_digits <> '' AND REGEXP_REPLACE(registration, '\\\\D', '', 'g') = v_digits)
-       OR (v_clean_id = 'admin' AND (role = 'admin' OR id = 'user-admin'))
-    LIMIT 1;
-
-    IF NOT FOUND THEN
-        RETURN jsonb_build_object('success', false, 'message', 'Usuário não encontrado. Verifique seu e-mail institucional ou matrícula/SIAPE.');
-    END IF;
-
-    IF v_user.password = v_clean_pass THEN
-        v_match := true;
-    ELSIF v_user.password = crypt(v_clean_pass, v_user.password) THEN
-        v_match := true;
-    END IF;
-
-    IF v_match THEN
-        RETURN jsonb_build_object(
-            'success', true,
-            'message', 'Login realizado com sucesso!',
-            'user', jsonb_build_object(
-                'id', v_user.id,
-                'name', v_user.name,
-                'role', v_user.role,
-                'registration', v_user.registration,
-                'email', v_user.email,
-                'roleLabel', v_user.role_label,
-                'createdAt', v_user.created_at
-            )
-        );
-    ELSE
-        RETURN jsonb_build_object('success', false, 'message', 'Senha incorreta. Verifique suas credenciais e tente novamente.');
-    END IF;
-END;
-\$\$;
-
-GRANT EXECUTE ON FUNCTION public.sigef_login(TEXT, TEXT) TO anon, authenticated;
+${SIGEF_AUTH_FUNCTIONS_SQL}
 
 -- 3. IMUTABILIDADE DO HISTÓRICO DE EMPRÉSTIMOS (BLOQUEIO TOTAL DE DELETE)
 DROP POLICY IF EXISTS "Public loans access" ON public.loans;
@@ -727,19 +598,7 @@ export function rowToNotice(r: any): NoticeBoardItem {
   };
 }
 
-export function userToRow(u: UserProfile) {
-  return {
-    id: u.id,
-    name: u.name,
-    role: u.role,
-    registration: u.registration,
-    email: u.email,
-    role_label: u.roleLabel,
-    password: u.password || 'admin',
-    created_at: u.createdAt || new Date().toISOString(),
-  };
-}
-
+// Perfis apenas: credenciais (password_hash) nunca passam pelo cliente.
 export function rowToUser(r: any): UserProfile {
   return {
     id: r.id,
@@ -748,7 +607,6 @@ export function rowToUser(r: any): UserProfile {
     registration: r.registration,
     email: r.email,
     roleLabel: r.role_label,
-    password: r.password,
     createdAt: r.created_at,
   };
 }
@@ -766,7 +624,9 @@ export async function testSupabaseConnection(): Promise<{
 
   try {
     for (const table of REQUIRED_TABLES) {
-      const { error } = await supabase.from(table).select('*').limit(1);
+      // `select('id')` instead of `select('*')`: app_users exposes only the
+      // profile columns to anon, so `*` is denied after the auth hardening.
+      const { error } = await supabase.from(table).select('id').limit(1);
       if (!error) {
         foundTables.push(table);
       } else if (error.code === 'PGRST205' || error.message?.includes('not find the table')) {

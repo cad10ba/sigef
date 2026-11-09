@@ -23,7 +23,7 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
   const [role, setRole] = useState<UserRole>('docente');
   const [department, setDepartment] = useState('Coordenação de Educação Física (COEF)');
   const [phone, setPhone] = useState('(73) 9');
-  const [password, setPassword] = useState('123456');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -34,7 +34,7 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
     setRole('docente');
     setDepartment('Coordenação de Educação Física (COEF)');
     setPhone('(73) 9');
-    setPassword('123456');
+    setPassword('');
     setShowPassword(false);
   };
 
@@ -51,7 +51,7 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
     onClose();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!name.trim() || !email.trim() || !registration.trim() || !password.trim()) {
@@ -65,7 +65,7 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
     }
 
     setIsSubmitting(true);
-    const res = sigefStorage.registerUser({
+    const res = await sigefStorage.registerUser({
       name,
       email,
       registration,
