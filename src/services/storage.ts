@@ -433,6 +433,59 @@ export const sigefStorage = {
     notifyListeners();
   },
 
+  updateUserPassword(userId: string, newPassword: string): { success: boolean; message: string } {
+    const users = this.getUsers();
+    const idx = users.findIndex((u) => u.id === userId);
+    if (idx < 0) {
+      return { success: false, message: 'Usuário não encontrado.' };
+    }
+
+    if (!newPassword || newPassword.trim().length < 4) {
+      return { success: false, message: 'A nova senha deve ter no mínimo 4 caracteres.' };
+    }
+
+    users[idx].password = newPassword.trim();
+    setStoredItem(STORAGE_KEYS.USERS, users);
+
+    // If it is current or auth user, update them as well
+    const auth = this.getAuthUser();
+    if (auth && auth.id === userId) {
+      auth.password = newPassword.trim();
+      this.setAuthUser(auth);
+    }
+    const current = getStoredItem<UserProfile | null>(STORAGE_KEYS.CURRENT_USER, null);
+    if (current && current.id === userId) {
+      current.password = newPassword.trim();
+      setStoredItem(STORAGE_KEYS.CURRENT_USER, current);
+    }
+
+    safeSupabaseUpsert('app_users', userToRow(users[idx]));
+    notifyListeners();
+
+    return { success: true, message: 'Senha atualizada com sucesso!' };
+  },
+
+  changeSelfPassword(currentPassword: string, newPassword: string): { success: boolean; message: string } {
+    const currentUser = this.getCurrentUser();
+    const users = this.getUsers();
+    const user = users.find((u) => u.id === currentUser.id);
+
+    if (!user) {
+      return { success: false, message: 'Usuário não localizado no acervo de contas.' };
+    }
+
+    const expected = user.password || '123456';
+    if (currentPassword.trim() !== expected) {
+      return { success: false, message: 'A senha atual informada está incorreta.' };
+    }
+
+    if (!newPassword || newPassword.trim().length < 4) {
+      return { success: false, message: 'A nova senha deve possuir pelo menos 4 caracteres.' };
+    }
+
+    return this.updateUserPassword(user.id, newPassword);
+  },
+
   // Spaces
   getSpaces(): Space[] {
     return getStoredItem<Space[]>(STORAGE_KEYS.SPACES, INITIAL_SPACES);

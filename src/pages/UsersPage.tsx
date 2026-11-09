@@ -79,12 +79,12 @@ export const UsersPage: React.FC<UsersPageProps> = ({
     return matchSearch && matchType;
   });
 
-  const handleOpenNewUser = () => {
+  const resetUserForm = () => {
     setEditingUser(null);
     setUserForm({
       name: '',
       type: 'estagiario',
-      registration: `EST-${Math.floor(1000 + Math.random() * 9000)}`,
+      registration: '',
       courseOrDepartment: 'Licenciatura em Educação Física',
       classGroup: '',
       email: '',
@@ -94,6 +94,10 @@ export const UsersPage: React.FC<UsersPageProps> = ({
       workloadHours: 20,
       assignedArea: 'Apoio às Aulas Práticas e Ginásio',
     });
+  };
+
+  const handleOpenNewUser = () => {
+    resetUserForm();
     setIsModalOpen(true);
   };
 
@@ -153,6 +157,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
 
     sigefStorage.saveRequester(newUser);
     showToast(editingUser ? 'Cadastro atualizado com sucesso!' : 'Novo usuário cadastrado na COEF!', 'success');
+    resetUserForm();
     setIsModalOpen(false);
   };
 
@@ -706,7 +711,10 @@ export const UsersPage: React.FC<UsersPageProps> = ({
               <div className="pt-3 border-t border-white/10 flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => {
+                    resetUserForm();
+                    setIsModalOpen(false);
+                  }}
                   className="px-3 py-2 text-slate-400 hover:text-white rounded-xl"
                 >
                   Cancelar

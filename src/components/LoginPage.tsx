@@ -102,6 +102,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
       if (res.success && res.user) {
         showToast(res.message, 'success');
+        setRegName('');
+        setRegEmail('');
+        setRegRegistration('');
+        setRegPassword('');
+        setRegConfirmPassword('');
+        setRegPhone('(73) 9');
         onLoginSuccess(res.user);
       } else {
         showToast(res.message, 'error');

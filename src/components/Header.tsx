@@ -19,6 +19,7 @@ import {
   Wrench,
   X,
   ExternalLink,
+  KeyRound,
 } from 'lucide-react';
 import { UserProfile, ActiveTab } from '../types/sigef';
 import { sigefStorage } from '../services/storage';
@@ -33,6 +34,7 @@ interface HeaderProps {
   onOpenNewKit: () => void;
   onOpenNewUserModal?: () => void;
   onOpenSupabaseModal?: () => void;
+  onOpenChangePassword?: () => void;
   onLogout?: () => void;
   onNavigate: (tab: ActiveTab) => void;
   onToggleSidebar: () => void;
@@ -51,6 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenNewKit,
   onOpenNewUserModal,
   onOpenSupabaseModal,
+  onOpenChangePassword,
   onLogout,
   onNavigate,
   onToggleSidebar,
@@ -580,6 +583,19 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <Database className="w-4 h-4 text-emerald-400 shrink-0" />
                       <span>Banco Supabase (PostgreSQL)</span>
+                    </button>
+                  )}
+
+                  {onOpenChangePassword && (
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        onOpenChangePassword();
+                      }}
+                      className="w-full py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-semibold flex items-center gap-2.5 border border-amber-500/20 transition-colors"
+                    >
+                      <KeyRound className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>Alterar Minha Senha</span>
                     </button>
                   )}
 

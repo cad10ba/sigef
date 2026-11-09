@@ -23,6 +23,7 @@ import { NewKitModal } from './components/NewKitModal';
 import { LoginPage } from './components/LoginPage';
 import { NewSystemUserModal } from './components/NewSystemUserModal';
 import { SupabaseSyncModal } from './components/SupabaseSyncModal';
+import { ChangePasswordModal } from './components/ChangePasswordModal';
 
 export default function App() {
   // Initialize storage on load
@@ -47,6 +48,7 @@ export default function App() {
 
   const [isNewUserModalOpen, setIsNewUserModalOpen] = useState(false);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
   const allUsers = sigefStorage.getUsers();
   const loans = sigefStorage.getLoans();
@@ -157,6 +159,7 @@ export default function App() {
           onOpenNewKit={() => handleOpenNewKit()}
           onOpenNewUserModal={currentUser.role === 'admin' ? () => setIsNewUserModalOpen(true) : undefined}
           onOpenSupabaseModal={currentUser.role === 'admin' ? () => setIsSupabaseModalOpen(true) : undefined}
+          onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
           onLogout={handleLogout}
           onNavigate={(tab) => setActiveTab(tab)}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -297,6 +300,13 @@ export default function App() {
         <SupabaseSyncModal
           isOpen={isSupabaseModalOpen}
           onClose={() => setIsSupabaseModalOpen(false)}
+        />
+
+        {/* Modal: Alterar Minha Senha */}
+        <ChangePasswordModal
+          isOpen={isChangePasswordModalOpen}
+          onClose={() => setIsChangePasswordModalOpen(false)}
+          currentUser={currentUser}
         />
       </div>
     </ToastProvider>

@@ -27,7 +27,29 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const resetForm = () => {
+    setName('');
+    setEmail('');
+    setRegistration('');
+    setRole('docente');
+    setDepartment('Coordenação de Educação Física (COEF)');
+    setPhone('(73) 9');
+    setPassword('123456');
+    setShowPassword(false);
+  };
+
+  React.useEffect(() => {
+    if (isOpen) {
+      resetForm();
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +78,7 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
 
     if (res.success) {
       showToast(`Novo usuário ${name} cadastrado com sucesso!`, 'success');
+      resetForm();
       onUserCreated?.();
       onClose();
     } else {
@@ -77,7 +100,7 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
           >
             <X className="w-5 h-5" />
@@ -202,7 +225,7 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
           <div className="pt-3 border-t border-white/10 flex justify-end gap-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 text-slate-400 hover:text-white rounded-xl transition-colors"
             >
               Cancelar
