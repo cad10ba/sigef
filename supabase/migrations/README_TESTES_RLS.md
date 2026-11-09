@@ -1,6 +1,6 @@
 # SIGEF — Checklist de teste da RLS
 
-Script a aplicar: [`supabase_rls_policies.sql`](./supabase_rls_policies.sql) (rode **por último**, depois de qualquer script de schema/auth).
+Script a aplicar: [`003_rls_policies.sql`](./003_rls_policies.sql) (rode **por último**, depois de qualquer script de schema/auth).
 
 ## 0. Preparação
 
@@ -129,6 +129,6 @@ Para retomar a sincronização com segurança, o cliente precisa de sessão do S
 
 ## 8. Pendências de segurança fora da RLS
 
-- A senha do administrador está em texto puro nos scripts do repositório (`supabase_auth_hardening.sql`, `supabase_schema.sql`). **Troque essa senha** e não comite senha real.
+- Nenhum script de `supabase/migrations/` guarda senha em texto puro: as contas são criadas com hash via `sigef_register_user`.
 - `sigef_login` não cria sessão: a "sessão" do SIGEF hoje é o objeto do `localStorage`, que o usuário pode editar. A fronteira real de dados passa a ser o Supabase Auth.
 - Sem rate limit na RPC de login: qualquer pessoa pode tentar senhas sem sessão.
