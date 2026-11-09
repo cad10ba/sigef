@@ -145,7 +145,7 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-[#0B1418] text-slate-100 flex flex-col font-sans">
+      <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${isDark ? 'bg-[#0B1418] text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
         {/* Header (fixed) */}
         <Header
           currentUser={currentUser}
@@ -155,8 +155,8 @@ export default function App() {
           onOpenNewLoan={() => handleOpenNewLoan()}
           onOpenNewMaterial={() => handleOpenNewMaterial()}
           onOpenNewKit={() => handleOpenNewKit()}
-          onOpenNewUserModal={() => setIsNewUserModalOpen(true)}
-          onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
+          onOpenNewUserModal={currentUser.role === 'admin' ? () => setIsNewUserModalOpen(true) : undefined}
+          onOpenSupabaseModal={currentUser.role === 'admin' ? () => setIsSupabaseModalOpen(true) : undefined}
           onLogout={handleLogout}
           onNavigate={(tab) => setActiveTab(tab)}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}

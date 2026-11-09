@@ -78,7 +78,8 @@ export const SupabaseSyncModal: React.FC<SupabaseSyncModalProps> = ({ isOpen, on
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  const currentUser = sigefStorage.getCurrentUser();
+  if (!isOpen || currentUser.role !== 'admin') return null;
 
   const handleCopySQL = async (type: 'full' | 'rls') => {
     try {

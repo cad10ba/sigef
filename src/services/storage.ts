@@ -1015,9 +1015,12 @@ export const sigefStorage = {
     setStoredItem(STORAGE_KEYS.THEME, theme);
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
+      document.body.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark');
     }
+    notifyListeners();
   },
 
   // Supabase Cloud Sync Methods
