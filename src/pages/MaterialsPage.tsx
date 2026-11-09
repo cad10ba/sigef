@@ -332,8 +332,8 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
             )}
           </div>
 
-          {/* Clear All Stock Button (Admin only) */}
-          {userRole === 'admin' && materials.length > 0 && (
+          {/* Clear All Stock Button */}
+          {materials.length > 0 && (
             <button
               onClick={() => setIsClearAllModalOpen(true)}
               className="flex items-center gap-1.5 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-semibold rounded-xl transition-all shadow-sm active:scale-[0.98]"
@@ -440,15 +440,13 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
               Desmarcar Todos
             </button>
 
-            {userRole === 'admin' && (
-              <button
-                onClick={() => setIsBatchDeleteModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-xl transition-all shadow-md active:scale-[0.98]"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Excluir Selecionados ({selectedIds.size})</span>
-              </button>
-            )}
+            <button
+              onClick={() => setIsBatchDeleteModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-xl transition-all shadow-md active:scale-[0.98]"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Excluir Selecionados ({selectedIds.size})</span>
+            </button>
           </div>
         </div>
       )}
@@ -460,21 +458,19 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
             <thead className="bg-[#0B1418] text-slate-400 font-bold border-b border-white/10 uppercase tracking-wider text-[11px]">
               <tr>
                 {/* Select All Checkbox */}
-                {userRole === 'admin' && (
-                  <th className="p-3.5 pl-4 w-10 text-center">
-                    <input
-                      type="checkbox"
-                      checked={
-                        filteredMaterials.length > 0 &&
-                        selectedIds.size === filteredMaterials.length
-                      }
-                      onChange={handleToggleSelectAll}
-                      className="rounded bg-[#0B1418] border-white/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                      title="Selecionar todos os materiais listados"
-                    />
-                  </th>
-                )}
-                <th className={`p-3.5 ${userRole !== 'admin' ? 'pl-4' : ''} w-32`}>
+                <th className="p-3.5 pl-4 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={
+                      filteredMaterials.length > 0 &&
+                      selectedIds.size === filteredMaterials.length
+                    }
+                    onChange={handleToggleSelectAll}
+                    className="rounded bg-[#0B1418] border-white/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    title="Selecionar todos os materiais listados"
+                  />
+                </th>
+                <th className="p-3.5 w-32">
                   Tombo / Patrimônio
                 </th>
                 <th className="p-3.5">Material & Especificação</th>
@@ -506,23 +502,17 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
                     }`}
                   >
                     {/* Checkbox */}
-                    {userRole === 'admin' && (
-                      <td className="p-3.5 pl-4 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleToggleSelectItem(mat.id)}
-                          className="rounded bg-[#0B1418] border-white/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                        />
-                      </td>
-                    )}
+                    <td className="p-3.5 pl-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleSelectItem(mat.id)}
+                        className="rounded bg-[#0B1418] border-white/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                      />
+                    </td>
 
                     {/* Patrimony */}
-                    <td
-                      className={`p-3.5 ${
-                        userRole !== 'admin' ? 'pl-4' : ''
-                      } font-mono font-bold text-slate-200`}
-                    >
+                    <td className="p-3.5 font-mono font-bold text-slate-200">
                       {mat.patrimonyNumber}
                     </td>
 
@@ -628,15 +618,13 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
                         </button>
 
                         {/* Individual Delete */}
-                        {userRole === 'admin' && (
-                          <button
-                            onClick={() => setMaterialToDelete(mat)}
-                            className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5 transition-colors"
-                            title="Excluir Material Individualmente"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => setMaterialToDelete(mat)}
+                          className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5 transition-colors"
+                          title="Excluir Material Individualmente"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -645,7 +633,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
 
               {filteredMaterials.length === 0 && (
                 <tr>
-                  <td colSpan={userRole === 'admin' ? 8 : 7} className="text-center py-12 text-slate-400">
+                  <td colSpan={8} className="text-center py-12 text-slate-400">
                     <Dumbbell className="w-10 h-10 mx-auto opacity-30 mb-2" />
                     <p className="text-sm font-semibold">Nenhum material encontrado no acervo.</p>
                     <p className="text-xs text-slate-500 mt-1">

@@ -158,15 +158,13 @@ export const KitsPage: React.FC<KitsPageProps> = ({
                     <Edit2 className="w-4 h-4" />
                   </button>
 
-                  {userRole === 'admin' && (
-                    <button
-                      onClick={() => handleDeleteKit(kit.id, kit.name)}
-                      className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5 transition-colors"
-                      title="Excluir Kit"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleDeleteKit(kit.id, kit.name)}
+                    className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5 transition-colors"
+                    title="Excluir Kit"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
 
                 <button
