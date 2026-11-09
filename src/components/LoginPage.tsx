@@ -14,7 +14,6 @@ import {
   LogIn,
   CheckCircle,
   HelpCircle,
-  Sparkles,
   School,
   ArrowRight,
 } from 'lucide-react';
@@ -43,29 +42,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
-
-  // Quick login for convenience / demo
-  const handleQuickLoginAdmin = async () => {
-    setIsSubmitting(true);
-    let res = await sigefStorage.loginAsync('cristianodias@ifba.edu.br', '833604');
-    if (!res.success) {
-      res = await sigefStorage.loginAsync('admin', '833604');
-    }
-    setIsSubmitting(false);
-    if (res.success && res.user) {
-      showToast(res.message, 'success');
-      onLoginSuccess(res.user);
-    } else {
-      const users = sigefStorage.getUsers();
-      const admin = users.find((u) => u.role === 'admin') || users[0];
-      if (admin) {
-        sigefStorage.setCurrentUser(admin);
-        sigefStorage.setAuthUser(admin);
-        showToast(`Conectado como ${admin.name}!`, 'success');
-        onLoginSuccess(admin);
-      }
-    }
-  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,12 +193,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold text-slate-300">
-                    Senha de Acesso
-                  </label>
-                  <span className="text-[11px] text-slate-500">Administrador: 833604</span>
-                </div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Senha de Acesso
+                </label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
@@ -252,21 +225,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 <span>{isSubmitting ? 'Verificando credenciais...' : 'Entrar no SIGEF'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-
-              {/* Quick Demo Login Option */}
-              <div className="pt-4 border-t border-white/10 text-center">
-                <p className="text-[11px] text-slate-400 mb-2">
-                  Acesso rápido com o perfil da Coordenação de Educação Física:
-                </p>
-                <button
-                  type="button"
-                  onClick={handleQuickLoginAdmin}
-                  className="w-full py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Acesso Rápido: Cristiano Araujo Dias (SIAPE 1852024)</span>
-                </button>
-              </div>
             </form>
           )}
 
