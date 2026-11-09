@@ -403,10 +403,14 @@ begin
         v_role := 'docente';
     end if;
     if v_role = 'admin' and not public.sigef_is_admin() then
-        return jsonb_build_object(
-            'success', false,
-            'message', 'Somente administradores podem criar contas de administrador.'
-        );
+        -- Bootstrap: enquanto não existir NENHUMA conta, a primeira pode ser
+        -- admin (instalação nova). Depois disso, só um admin cria outro admin.
+        if exists (select 1 from public.app_users) then
+            return jsonb_build_object(
+                'success', false,
+                'message', 'Somente administradores podem criar contas de administrador.'
+            );
+        end if;
     end if;
 
     v_label := case v_role

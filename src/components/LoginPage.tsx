@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { sigefStorage } from '../services/storage';
 import { UserProfile } from '../types/sigef';
 import { useToast } from './Toast';
@@ -21,10 +21,20 @@ interface LoginPageProps {
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const { showToast } = useToast();
-  // O cache de perfis (sem senha) só decide qual tela abrir no primeiro uso.
-  // A validação de credenciais acontece exclusivamente no servidor.
-  const usersList = sigefStorage.getUsers();
-  const hasUsers = usersList.length > 0;
+  // A lista de usuários não é mais guardada no navegador: o servidor informa
+  // apenas se já existe alguma conta, para decidir entre login e a primeira
+  // configuração. Em qualquer dúvida (RLS, rede) mostra o login — nunca o
+  // formulário de cadastro. A validação de credenciais é só no servidor.
+  const [hasUsers, setHasUsers] = useState(true);
+  useEffect(() => {
+    let active = true;
+    sigefStorage.systemHasAccounts().then((has) => {
+      if (active) setHasUsers(has);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Login form state
   const [loginIdentifier, setLoginIdentifier] = useState('');

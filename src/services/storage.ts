@@ -112,6 +112,61 @@ const STORAGE_KEYS = {
   THEME: 'sigef_theme_v2_blank',
 };
 
+// --------------------------------------------------------------------
+// Classificação das chaves (LGPD)
+// --------------------------------------------------------------------
+// NUNCA no navegador: dado pessoal (nome, e-mail, telefone, matrícula) ou
+// histórico de responsabilidade. Vivem só em memória enquanto a aba existe e
+// são hidratados do Supabase sob demanda, já sob RLS.
+const MEMORY_ONLY_KEYS = new Set<string>([
+  STORAGE_KEYS.USERS,
+  STORAGE_KEYS.REQUESTERS,
+  STORAGE_KEYS.LOANS,
+  STORAGE_KEYS.RESERVATIONS,
+]);
+
+// Sessão (quem está logado) em sessionStorage: some ao fechar a aba e é
+// apagada no logout. No localStorage a cópia sobreviveria por meses.
+const SESSION_KEYS = new Set<string>([STORAGE_KEYS.AUTH_USER, STORAGE_KEYS.CURRENT_USER]);
+
+// Cache permitido no localStorage: só dado operacional não sensível.
+const PERSISTED_KEYS = new Set<string>([
+  STORAGE_KEYS.SPACES,
+  STORAGE_KEYS.MATERIALS,
+  STORAGE_KEYS.KITS,
+  STORAGE_KEYS.NOTICES,
+  STORAGE_KEYS.REGULATION,
+  STORAGE_KEYS.CATEGORIES,
+  STORAGE_KEYS.THEME,
+]);
+
+const memoryStore = new Map<string, string>();
+
+// Expurgo seletivo (boot): preserva o cache não sensível e a sessão da aba,
+// e remove qualquer cópia antiga de dado pessoal gravada por versões anteriores.
+function purgeNonPersistedKeys(): void {
+  memoryStore.clear();
+  [localStorage, sessionStorage].forEach((storage) => {
+    Object.keys(storage)
+      .filter((key) => key.startsWith('sigef_'))
+      .forEach((key) => {
+        const allowed =
+          storage === localStorage ? PERSISTED_KEYS.has(key) : SESSION_KEYS.has(key);
+        if (!allowed) storage.removeItem(key);
+      });
+  });
+}
+
+// Expurgo total (logout): nenhuma chave sigef_* sobrevive em nenhum storage.
+function purgeAllSigefKeys(): void {
+  memoryStore.clear();
+  [localStorage, sessionStorage].forEach((storage) => {
+    Object.keys(storage)
+      .filter((key) => key.startsWith('sigef_'))
+      .forEach((key) => storage.removeItem(key));
+  });
+}
+
 // Event listener mechanism to notify active tabs/components when storage updates
 type StorageListener = () => void;
 const listeners: Set<StorageListener> = new Set();
@@ -135,39 +190,44 @@ function notifyListeners() {
 
 function getStoredItem<T>(key: string, defaultValue: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    // Dado pessoal: só existe em memória, pelo tempo de vida da aba.
+    if (MEMORY_ONLY_KEYS.has(key)) {
+      const raw = memoryStore.get(key);
+      return raw ? (JSON.parse(raw) as T) : defaultValue;
+    }
+    const storage = SESSION_KEYS.has(key) ? sessionStorage : localStorage;
+    const raw = storage.getItem(key);
     if (!raw) return defaultValue;
     return JSON.parse(raw) as T;
   } catch (e) {
-    console.error(`Failed to read ${key} from localStorage:`, e);
+    console.error(`Failed to read ${key} from storage:`, e);
     return defaultValue;
   }
 }
 
 function setStoredItem<T>(key: string, value: T): void {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    const serialized = JSON.stringify(value);
+    if (MEMORY_ONLY_KEYS.has(key)) {
+      memoryStore.set(key, serialized);
+      // Garante que nenhuma cópia antiga continue no disco.
+      localStorage.removeItem(key);
+    } else if (SESSION_KEYS.has(key)) {
+      sessionStorage.setItem(key, serialized);
+    } else {
+      localStorage.setItem(key, serialized);
+    }
     notifyListeners();
   } catch (e) {
-    console.error(`Failed to save ${key} to localStorage:`, e);
+    console.error(`Failed to save ${key} to storage:`, e);
   }
 }
 
 export const sigefStorage = {
   init() {
-    // Clean old v1 demo keys if present so user starts fresh in blank
-    [
-      'sigef_spaces_v1',
-      'sigef_materials_v1',
-      'sigef_kits_v1',
-      'sigef_requesters_v1',
-      'sigef_loans_v1',
-      'sigef_reservations_v1',
-      'sigef_notices_v1',
-      'sigef_regulation_v1',
-      'sigef_users_v1',
-      'sigef_current_user_v1',
-    ].forEach((k) => localStorage.removeItem(k));
+    // Remove do navegador qualquer cópia antiga de dado pessoal (inclusive as
+    // chaves v1 de demonstração) antes de montar o cache não sensível.
+    purgeNonPersistedKeys();
 
     if (!localStorage.getItem(STORAGE_KEYS.SPACES)) {
       setStoredItem(STORAGE_KEYS.SPACES, INITIAL_SPACES);
@@ -178,15 +238,8 @@ export const sigefStorage = {
     if (!localStorage.getItem(STORAGE_KEYS.KITS)) {
       setStoredItem(STORAGE_KEYS.KITS, INITIAL_KITS);
     }
-    if (!localStorage.getItem(STORAGE_KEYS.REQUESTERS)) {
-      setStoredItem(STORAGE_KEYS.REQUESTERS, INITIAL_REQUESTERS);
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.LOANS)) {
-      setStoredItem(STORAGE_KEYS.LOANS, INITIAL_LOANS);
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.RESERVATIONS)) {
-      setStoredItem(STORAGE_KEYS.RESERVATIONS, INITIAL_RESERVATIONS);
-    }
+    // requesters/loans/reservations não são semeados nem persistidos: chegam
+    // do Supabase sob demanda e ficam apenas em memória.
     if (!localStorage.getItem(STORAGE_KEYS.NOTICES)) {
       setStoredItem(STORAGE_KEYS.NOTICES, INITIAL_NOTICES);
     }
@@ -196,24 +249,13 @@ export const sigefStorage = {
     if (!localStorage.getItem(STORAGE_KEYS.CATEGORIES)) {
       setStoredItem(STORAGE_KEYS.CATEGORIES, DEFAULT_SPORT_CATEGORIES);
     }
-    if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-      setStoredItem(STORAGE_KEYS.USERS, []);
-    } else {
-      // Remove any previously pre-seeded hardcoded admin and any plaintext
-      // password an older version stored in the browser cache.
-      const users = this.getUsers()
-        .filter((u) => u.id !== 'user-admin')
-        .map((u) => {
-          const clean = { ...u } as UserProfile & { password?: string };
-          delete clean.password;
-          return clean;
-        });
-      setStoredItem(STORAGE_KEYS.USERS, users);
-    }
+    // app_users nunca é cacheado: começa vazio em memória e é carregado do
+    // Supabase (somente as colunas de perfil, sob RLS) durante a sessão.
+    setStoredItem(STORAGE_KEYS.USERS, []);
     const authUser = this.getAuthUser();
     if (authUser && authUser.id === 'user-admin') {
       this.setAuthUser(null);
-      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
     }
     this.refreshAllKitStatuses();
     this.syncFromSupabase().catch(() => {});
@@ -229,8 +271,8 @@ export const sigefStorage = {
     setStoredItem(STORAGE_KEYS.NOTICES, INITIAL_NOTICES);
     setStoredItem(STORAGE_KEYS.REGULATION, INITIAL_REGULATION);
     setStoredItem(STORAGE_KEYS.USERS, []);
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-    localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+    sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    sessionStorage.removeItem(STORAGE_KEYS.AUTH_USER);
     this.refreshAllKitStatuses();
   },
 
@@ -240,7 +282,7 @@ export const sigefStorage = {
   },
 
   getAuthUser(): UserProfile | null {
-    const raw = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
+    const raw = sessionStorage.getItem(STORAGE_KEYS.AUTH_USER);
     if (!raw) return null;
     try {
       return JSON.parse(raw) as UserProfile;
@@ -251,9 +293,9 @@ export const sigefStorage = {
 
   setAuthUser(user: UserProfile | null) {
     if (!user) {
-      localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+      sessionStorage.removeItem(STORAGE_KEYS.AUTH_USER);
     } else {
-      localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
+      sessionStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
     }
     notifyListeners();
   },
@@ -278,6 +320,19 @@ export const sigefStorage = {
   setCurrentUser(user: UserProfile) {
     setStoredItem(STORAGE_KEYS.CURRENT_USER, user);
     this.setAuthUser(user);
+  },
+
+  // Como a lista de usuários não é mais cacheada, o app pergunta ao servidor
+  // apenas "existe alguma conta?" — sem ler nenhum perfil. Se a RLS negar a
+  // leitura, o projeto já está configurado e protegido: cai no login.
+  async systemHasAccounts(): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.from('app_users').select('id').limit(1);
+      if (error) return true;
+      return (data?.length ?? 0) > 0;
+    } catch {
+      return true;
+    }
   },
 
   async loginAsync(
@@ -336,6 +391,10 @@ export const sigefStorage = {
 
       this.setCurrentUser(cloudUser);
       this.setAuthUser(cloudUser);
+      // Dados pessoais (solicitantes, empréstimos, reservas, usuários) são
+      // buscados sob demanda: sem sessão válida a RLS devolve vazio/erro e
+      // nada fica guardado no navegador.
+      this.syncFromSupabase().catch(() => {});
       return {
         success: true,
         message: data.message || 'Login realizado com sucesso!',
@@ -460,7 +519,8 @@ export const sigefStorage = {
   },
 
   logout(): void {
-    localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+    // Nenhuma chave sigef_* (dado pessoal, cache ou sessão) sobrevive à saída.
+    purgeAllSigefKeys();
     notifyListeners();
   },
 
