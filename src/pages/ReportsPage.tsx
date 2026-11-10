@@ -246,7 +246,39 @@ export const ReportsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Avarias — cartões no celular */}
+        <div className="md:hidden space-y-2.5">
+          {damagedItems.map((mat) => {
+            const lastMov = mat.history?.[0];
+            return (
+              <div key={mat.id} className="p-3.5 rounded-xl bg-[#0B1418] border border-white/10">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <span className="font-mono text-[11px] text-slate-400 block">
+                      {mat.patrimonyNumber}
+                    </span>
+                    <span className="font-semibold text-white text-sm block truncate">{mat.name}</span>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 shrink-0">
+                    {mat.conservationState}
+                  </span>
+                </div>
+                <p className="mt-2 text-[11px] text-slate-400">
+                  {mat.storageLocation} •{' '}
+                  {lastMov ? `${lastMov.reason} (${formatDateBR(lastMov.date)})` : 'Registro do sistema'}
+                </p>
+              </div>
+            );
+          })}
+
+          {damagedItems.length === 0 && (
+            <p className="text-center py-6 text-xs text-slate-400">
+              Nenhum item com avaria ou baixa registrado no momento.
+            </p>
+          )}
+        </div>
+
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-[#0B1418] text-slate-400 font-bold uppercase text-[10px]">
               <tr>

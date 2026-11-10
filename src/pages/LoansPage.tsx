@@ -107,7 +107,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({
 
       {/* Terminal de Balcão (Fast barcode reader / registration input) */}
       <div className="p-5 rounded-2xl bg-gradient-to-br from-[#102027] to-[#0E1E24] border border-sky-500/30 shadow-xl">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
             <ScanLine className="w-5 h-5 text-sky-400" />
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">
@@ -198,7 +198,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({
       {/* Tabs and Search Bar */}
       <div className="p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Tabs */}
-        <div className="flex items-center bg-[#0B1418] p-1 rounded-xl border border-white/10">
+        <div className="flex items-center bg-[#0B1418] p-1 rounded-xl border border-white/10 overflow-x-auto max-w-full">
           <button
             onClick={() => setActiveTab('ativos')}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${

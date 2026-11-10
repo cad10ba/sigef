@@ -26,7 +26,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-      <div className="relative w-full max-w-md rounded-2xl bg-[#102027] dark:bg-[#102027] border border-slate-700/60 p-6 shadow-2xl text-slate-100 animate-in fade-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-md rounded-2xl bg-[#102027] dark:bg-[#102027] border border-slate-700/60 p-6 shadow-2xl text-slate-100 max-h-[90dvh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
         <button
           onClick={onCancel}
           className="absolute right-4 top-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"

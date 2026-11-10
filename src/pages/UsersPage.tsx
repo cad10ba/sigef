@@ -644,7 +644,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
       {/* User Create/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
+          <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl max-h-[90dvh] overflow-y-auto">
             <h3 className="text-base font-bold text-white mb-1">
               {editingUser ? 'Editar Cadastro de Usuário' : 'Novo Cadastro no SIGEF COEF'}
             </h3>

@@ -228,7 +228,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
       {/* Page Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-white/10">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
               <Dumbbell className="w-6 h-6 text-emerald-400" />
               <span>Acervo Patrimonial & Materiais Esportivos</span>
@@ -251,7 +251,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
             title="Importar materiais via planilha Excel (.xlsx) ou CSV com modelo oficial"
           >
             <Upload className="w-4 h-4" />
-            <span>Importar Planilha</span>
+            <span className="hidden sm:inline">Importar Planilha</span>
           </button>
 
           {/* Export Dropdown */}
@@ -265,7 +265,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
               title="Exportar inventário"
             >
               <Download className="w-4 h-4 text-slate-400" />
-              <span>Exportar</span>
+              <span className="hidden sm:inline">Exportar</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
 
@@ -300,7 +300,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
               title="Baixar planilha modelo de cadastro"
             >
               <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-              <span>Baixar Modelo</span>
+              <span className="hidden sm:inline">Baixar Modelo</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
 
@@ -340,7 +340,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
               title="Excluir todos os materiais do acervo de uma vez"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Excluir Todo o Estoque</span>
+              <span className="hidden sm:inline">Excluir Todo o Estoque</span>
             </button>
           )}
 
@@ -422,7 +422,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
 
       {/* Batch Action Bar (when items are selected) */}
       {selectedIds.size > 0 && (
-        <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-emerald-500/30 flex items-center justify-between gap-3 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-emerald-500/30 flex flex-wrap items-center justify-between gap-3 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150">
           <div className="flex items-center gap-2.5">
             <span className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold flex items-center justify-center text-xs">
               {selectedIds.size}
@@ -451,8 +451,139 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
         </div>
       )}
 
-      {/* Materials Table */}
-      <div className="rounded-2xl border border-white/10 bg-[#102027] overflow-hidden shadow-xl">
+      {/* Materials — cartões no celular (a tabela larga não cabe em telas pequenas) */}
+      <div className="md:hidden space-y-3">
+        {filteredMaterials.map((mat) => {
+          const badge = getConservationBadge(mat.conservationState);
+          const isLowStock = mat.availableQuantity <= mat.minStockAlert;
+          const isDamaged = mat.conservationState === 'danificado';
+          const isSelected = selectedIds.has(mat.id);
+
+          return (
+            <div
+              key={mat.id}
+              className={`rounded-2xl border p-4 transition-colors ${
+                isSelected
+                  ? 'bg-emerald-950/20 border-emerald-500/40'
+                  : isDamaged
+                  ? 'bg-rose-950/20 border-rose-500/30'
+                  : isLowStock
+                  ? 'bg-amber-950/15 border-amber-500/30'
+                  : 'bg-[#102027] border-white/10'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="font-mono text-[11px] font-bold text-slate-400">
+                    {mat.patrimonyNumber}
+                  </span>
+                  <h3 className="font-semibold text-white text-sm leading-snug mt-0.5">
+                    {mat.name}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 line-clamp-2 mt-0.5">
+                    {mat.technicalDescription}
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => handleToggleSelectItem(mat.id)}
+                  aria-label={`Selecionar ${mat.name}`}
+                  className="mt-0.5 w-4 h-4 shrink-0 rounded bg-[#0B1418] border-white/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                />
+              </div>
+
+              <div className="mt-3 flex items-center gap-2 flex-wrap text-[11px]">
+                <span className="px-2 py-0.5 rounded-lg bg-white/5 text-slate-300 font-medium">
+                  {sigefStorage.getCategoryLabel(mat.category)}
+                </span>
+                <span className={`px-2 py-0.5 rounded-full border font-bold ${badge.colorClass}`}>
+                  {badge.label}
+                </span>
+                {isLowStock && (
+                  <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    Mínimo
+                  </span>
+                )}
+                <span className="font-mono ml-auto">
+                  <span
+                    className={`font-bold ${
+                      mat.availableQuantity === 0
+                        ? 'text-rose-400'
+                        : isLowStock
+                        ? 'text-amber-400'
+                        : 'text-emerald-400'
+                    }`}
+                  >
+                    {mat.availableQuantity}
+                  </span>
+                  <span className="text-slate-500"> / {mat.totalQuantity} disp.</span>
+                </span>
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                <span className="text-[11px] text-slate-400 truncate">
+                  Guarda: <span className="text-slate-300">{mat.storageLocation}</span>
+                </span>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => setSelectedMaterialHistory(mat)}
+                    className="p-2 text-slate-400 active:text-sky-300 rounded-lg active:bg-white/5"
+                    title="Histórico de Movimentações"
+                    aria-label={`Histórico de ${mat.name}`}
+                  >
+                    <History className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAdjustingMaterial(mat);
+                      setAdjustDelta(1);
+                      setAdjustType('entrada');
+                      setAdjustReason('');
+                    }}
+                    className="p-2 text-slate-400 active:text-emerald-300 rounded-lg active:bg-white/5"
+                    title="Ajuste Rápido de Estoque"
+                    aria-label={`Ajustar estoque de ${mat.name}`}
+                  >
+                    <Package className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onOpenNewMaterial(mat)}
+                    className="p-2 text-slate-400 active:text-white rounded-lg active:bg-white/5"
+                    title="Editar Material"
+                    aria-label={`Editar ${mat.name}`}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setMaterialToDelete(mat)}
+                    className="p-2 text-slate-400 active:text-rose-400 rounded-lg active:bg-white/5"
+                    title="Excluir Material"
+                    aria-label={`Excluir ${mat.name}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {filteredMaterials.length === 0 && (
+          <div className="text-center py-10 rounded-2xl bg-[#102027] border border-white/10 text-slate-400">
+            <Dumbbell className="w-10 h-10 mx-auto opacity-30 mb-2" />
+            <p className="text-sm font-semibold text-white">Nenhum material encontrado no acervo.</p>
+            <p className="text-xs text-slate-500 mt-1 px-4">
+              Cadastre manualmente ou importe via planilha Excel (.xlsx) / CSV.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Materials Table (telas médias e grandes) */}
+      <div className="hidden md:block rounded-2xl border border-white/10 bg-[#102027] overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-[#0B1418] text-slate-400 font-bold border-b border-white/10 uppercase tracking-wider text-[11px]">
@@ -696,7 +827,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
       {/* Material Movement History Modal */}
       {selectedMaterialHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative w-full max-w-lg bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
+          <div className="relative w-full max-w-lg bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -775,7 +906,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
       {/* Quick Stock Adjustment Modal */}
       {adjustingMaterial && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
+          <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl max-h-[90dvh] overflow-y-auto">
             <h3 className="text-base font-bold text-white mb-1">
               Ajuste de Estoque: {adjustingMaterial.name}
             </h3>

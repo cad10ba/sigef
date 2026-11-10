@@ -159,7 +159,7 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${isDark ? 'bg-[#0B1418] text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
+      <div className={`min-h-dvh flex flex-col font-sans transition-colors duration-200 ${isDark ? 'bg-[#0B1418] text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
         {/* Header (fixed) */}
         <Header
           currentUser={currentUser}
@@ -194,7 +194,7 @@ export default function App() {
           />
 
           {/* Page Content Viewport */}
-          <main className="flex-1 min-w-0 px-3 sm:px-6 lg:px-8 py-5 sm:py-6 pb-24 lg:pb-12 max-w-7xl mx-auto w-full">
+          <main className="flex-1 min-w-0 px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-12 max-w-7xl mx-auto w-full">
             {activeTab === 'inicio' && (
               <DashboardPage
                 onNavigate={(tab) => setActiveTab(tab)}

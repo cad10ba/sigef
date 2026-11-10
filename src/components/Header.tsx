@@ -146,9 +146,9 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Main Header Row */}
-      <div className="flex items-center justify-between gap-3 px-3 sm:px-6 h-16">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 py-2 sm:flex-nowrap sm:gap-3 sm:px-6 sm:h-16 sm:py-0">
         {/* Left: Mobile Menu Toggle & Brand Lockup */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="order-1 flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             onClick={onToggleSidebar}
             className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
@@ -162,7 +162,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => onNavigate('inicio')}
             className="flex items-center gap-2.5 text-left group"
           >
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-[#1B8A4B] to-[#22A55B] text-white font-extrabold shadow-md shadow-emerald-950/40 border border-emerald-400/30">
+            <div className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-[#1B8A4B] to-[#22A55B] text-white font-extrabold shadow-md shadow-emerald-950/40 border border-emerald-400/30">
               <span className="text-xs tracking-tighter font-mono">IF</span>
             </div>
             <div>
@@ -170,7 +170,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="font-bold text-base tracking-tight text-white group-hover:text-emerald-300 transition-colors">
                   SIGEF
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                   COEF
                 </span>
               </div>
@@ -182,7 +182,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Center: Global Search Bar */}
-        <div ref={searchRef} className="relative flex-1 max-w-xl mx-2">
+        <div ref={searchRef} className="relative order-3 w-full sm:order-2 sm:flex-1 sm:w-auto sm:max-w-xl sm:mx-2">
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
@@ -307,15 +307,16 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Right Actions Zone */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="order-2 flex items-center gap-1.5 sm:order-3 sm:gap-3 shrink-0">
           {/* "+ Novo" Button & Dropdown */}
           <div ref={newMenuRef} className="relative">
             <button
               onClick={() => setIsNewMenuOpen(!isNewMenuOpen)}
-              className="flex items-center gap-1.5 h-10 px-3.5 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs sm:text-sm font-semibold rounded-xl shadow-md shadow-emerald-950/30 transition-all active:scale-[0.98]"
+              className="flex items-center gap-1 h-9 px-2.5 sm:h-10 sm:px-3.5 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs sm:text-sm font-semibold rounded-xl shadow-md shadow-emerald-950/30 transition-all active:scale-[0.98]"
+              aria-label="Criar novo registro"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden xs:inline">Novo</span>
+              <span className="hidden sm:inline">Novo</span>
               <ChevronDown className="w-3.5 h-3.5 opacity-80" />
             </button>
 
@@ -382,7 +383,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div ref={notifRef} className="relative">
             <button
               onClick={() => setIsNotifOpen(!isNotifOpen)}
-              className="relative p-2.5 text-slate-300 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
+              className="relative p-2 sm:p-2.5 text-slate-300 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
               title="Avisos e Notificações"
               aria-label="Notificações"
             >
@@ -505,7 +506,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Theme Toggle (Light / Dark) */}
           <button
             onClick={onToggleTheme}
-            className="p-2.5 text-slate-300 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
+            className="hidden sm:block p-2.5 text-slate-300 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
             title={isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
             aria-label="Alternar tema"
           >
@@ -516,7 +517,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div ref={userMenuRef} className="relative">
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-white/5 transition-colors border border-white/10 bg-[#102027]"
+              className="flex items-center gap-1 p-1 sm:gap-2 sm:p-1.5 rounded-xl hover:bg-white/5 transition-colors border border-white/10 bg-[#102027]"
             >
               <div className="w-7 h-7 rounded-lg bg-emerald-700 text-white font-bold flex items-center justify-center text-xs">
                 {currentUser.name
@@ -534,7 +535,7 @@ export const Header: React.FC<HeaderProps> = ({
                   {currentUser.role}
                 </span>
               </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronDown className="hidden sm:block w-3.5 h-3.5 text-slate-400" />
             </button>
 
             {isUserMenuOpen && (
@@ -585,6 +586,19 @@ export const Header: React.FC<HeaderProps> = ({
                       <span>Banco Supabase (PostgreSQL)</span>
                     </button>
                   )}
+
+                  {/* No celular o tema fica aqui, liberando espaço na barra superior */}
+                  <button
+                    onClick={onToggleTheme}
+                    className="sm:hidden w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 text-xs font-semibold flex items-center gap-2.5 border border-white/10 transition-colors"
+                  >
+                    {isDark ? (
+                      <Sun className="w-4 h-4 text-amber-300 shrink-0" />
+                    ) : (
+                      <Moon className="w-4 h-4 text-indigo-400 shrink-0" />
+                    )}
+                    <span>{isDark ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro'}</span>
+                  </button>
 
                   {onOpenChangePassword && (
                     <button

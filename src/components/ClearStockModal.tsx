@@ -41,7 +41,7 @@ export const ClearStockModal: React.FC<ClearStockModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
-      <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-3xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-3xl border border-rose-500/30 p-6 shadow-2xl max-h-[90dvh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
         <button
           onClick={handleCancelar}
           className="absolute right-4 top-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"

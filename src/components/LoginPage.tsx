@@ -52,7 +52,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B1418] text-slate-100 flex flex-col items-center justify-center p-4 selection:bg-[#1B8A4B] selection:text-white">
+    <div className="min-h-dvh bg-[#0B1418] text-slate-100 flex flex-col items-center justify-center px-4 py-6 selection:bg-[#1B8A4B] selection:text-white">
       {/* Background Glow Effect */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-emerald-600/10 blur-[120px] rounded-full" />

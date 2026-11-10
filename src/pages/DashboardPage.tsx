@@ -129,11 +129,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   return (
     <div className="space-y-6">
       {/* 2 Big Primary Highlight Action Banners */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         {/* Banner 1: Terminal de Empréstimos */}
         <button
           onClick={onOpenTerminalLoan}
-          className="group relative flex flex-col justify-between p-6 rounded-2xl bg-gradient-to-br from-[#102027] to-[#122A2F] border border-emerald-500/30 hover:border-emerald-500/60 shadow-xl shadow-black/30 transition-all text-left overflow-hidden active:scale-[0.99]"
+          className="group relative flex flex-col justify-between p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-[#102027] to-[#122A2F] border border-emerald-500/30 hover:border-emerald-500/60 shadow-xl shadow-black/30 transition-all text-left overflow-hidden active:scale-[0.99]"
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all" />
           <div className="flex items-start justify-between">
@@ -161,7 +161,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         {/* Banner 2: Cronograma dos Espaços */}
         <button
           onClick={() => onNavigate('espacos')}
-          className="group relative flex flex-col justify-between p-6 rounded-2xl bg-gradient-to-br from-[#102027] to-[#162534] border border-sky-500/30 hover:border-sky-500/60 shadow-xl shadow-black/30 transition-all text-left overflow-hidden active:scale-[0.99]"
+          className="group relative flex flex-col justify-between p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-[#102027] to-[#162534] border border-sky-500/30 hover:border-sky-500/60 shadow-xl shadow-black/30 transition-all text-left overflow-hidden active:scale-[0.99]"
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-full blur-2xl group-hover:bg-sky-500/20 transition-all" />
           <div className="flex items-start justify-between">
@@ -235,9 +235,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       </div>
 
       {/* KPI Stat Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
         {/* Alunos Atendidos */}
-        <div className="p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
           <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
             Alunos Atendidos
           </span>
@@ -249,7 +249,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
 
         {/* Materiais Cadastrados */}
-        <div className="p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
           <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
             Materiais no Acervo
           </span>
@@ -261,7 +261,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
 
         {/* Taxa de Ocupação */}
-        <div className="p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
           <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
             Taxa de Ocupação
           </span>
@@ -274,7 +274,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
 
         {/* Kits Prontos */}
-        <div className="p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
           <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
             Kits Prontos
           </span>
@@ -288,7 +288,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
 
         {/* Empréstimos Ativos */}
-        <div className="p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
           <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
             Empréstimos Ativos
           </span>
@@ -324,7 +324,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
       {/* Espaços em Atividade Hoje */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h3 className="text-base sm:text-lg font-bold text-white">
               Espaços Esportivos em Atividade Hoje
@@ -560,7 +560,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       {/* Modal for creating a new notice */}
       {isNewNoticeOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
+          <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl max-h-[90dvh] overflow-y-auto">
             <h3 className="text-base font-bold text-white mb-1">Publicar Comunicado no Mural</h3>
             <p className="text-xs text-slate-400 mb-4">
               O aviso ficará visível para toda a comunidade acadêmica da COEF.

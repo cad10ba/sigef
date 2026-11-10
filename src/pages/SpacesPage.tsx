@@ -483,6 +483,14 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
         </span>
       </div>
 
+      {/* Dica de navegação da grade no celular */}
+      <div className="sm:hidden flex items-start gap-1.5 text-[11px] text-slate-400 px-1">
+        <Info className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+        <span>
+          Deslize a grade para o lado para ver todos os dias, ou use a Visão Dia para a agenda completa.
+        </span>
+      </div>
+
       {/* WEEKLY GRID VIEW */}
       {viewMode === 'semana' ? (
         <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#102027] shadow-xl">
@@ -658,7 +666,7 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
       {/* Time Slots Edit Modal */}
       {isTimeSlotsModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
+          <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl max-h-[90dvh] overflow-y-auto">
             <h3 className="text-base font-bold text-white flex items-center gap-2 mb-1">
               <Clock className="w-5 h-5 text-emerald-400" />
               <span>Editar Coluna de Horários</span>
@@ -726,7 +734,7 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
       {/* Maintenance OS Modal */}
       {isMaintenanceModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
+          <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl max-h-[90dvh] overflow-y-auto">
             <h3 className="text-base font-bold text-white flex items-center gap-2 mb-1">
               <Wrench className="w-5 h-5 text-amber-400" />
               <span>Controle de Manutenção do Espaço</span>
@@ -802,7 +810,7 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
       {/* Space Create/Edit Modal */}
       {isSpaceModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative w-full max-w-lg bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
+          <div className="relative w-full max-w-lg bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl max-h-[90dvh] overflow-y-auto">
             <h3 className="text-base font-bold text-white mb-1">
               {editingSpace ? 'Editar Espaço Esportivo' : 'Cadastrar Novo Espaço Físico'}
             </h3>

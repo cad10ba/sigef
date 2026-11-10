@@ -50,6 +50,15 @@ export const Navigation: React.FC<NavigationProps> = ({
     { id: 'normas' as ActiveTab, label: 'Normas & Contato', icon: BookOpenText },
   ];
 
+  // Atalhos fixos na barra inferior: os cinco destinos de uso diário no balcão.
+  const mobileTabs = [
+    { id: 'inicio' as ActiveTab, label: 'Início', icon: LayoutDashboard },
+    { id: 'espacos' as ActiveTab, label: 'Espaços', icon: CalendarDays },
+    { id: 'emprestimos' as ActiveTab, label: 'Empréstimos', icon: ClipboardList },
+    { id: 'materiais' as ActiveTab, label: 'Materiais', icon: Dumbbell },
+    { id: 'kits' as ActiveTab, label: 'Kits', icon: Boxes },
+  ];
+
   return (
     <>
       {/* Mobile Drawer Backdrop */}
@@ -63,7 +72,7 @@ export const Navigation: React.FC<NavigationProps> = ({
 
       {/* Desktop Sidebar & Mobile Drawer */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-[#0B1418] border-r border-white/10 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-[17rem] max-w-[85vw] bg-[#0B1418] border-r border-white/10 flex flex-col pb-[env(safe-area-inset-bottom)] transition-transform duration-200 ease-in-out lg:translate-x-0 ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:static lg:z-10`}
       >
@@ -156,60 +165,37 @@ export const Navigation: React.FC<NavigationProps> = ({
       </aside>
 
       {/* Fixed Bottom Navigation for Mobile (Thumb Zone) */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0B1418]/95 dark:bg-[#0B1418]/95 backdrop-blur-md border-t border-white/10 px-2 py-1 flex items-center justify-around h-16">
-        <button
-          onClick={() => onNavigate('inicio')}
-          className={`flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
-            activeTab === 'inicio' ? 'text-emerald-400 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <LayoutDashboard className="w-5 h-5 mb-0.5" />
-          <span>Início</span>
-        </button>
-
-        <button
-          onClick={() => onNavigate('espacos')}
-          className={`flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
-            activeTab === 'espacos' ? 'text-emerald-400 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <CalendarDays className="w-5 h-5 mb-0.5" />
-          <span>Espaços</span>
-        </button>
-
-        <button
-          onClick={() => onNavigate('emprestimos')}
-          className={`relative flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
-            activeTab === 'emprestimos' ? 'text-emerald-400 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <ClipboardList className="w-5 h-5 mb-0.5" />
-          <span>Empréstimos</span>
-          {overdueCount > 0 && (
-            <span className="absolute top-1 right-3 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#0B1418]" />
-          )}
-        </button>
-
-        <button
-          onClick={() => onNavigate('materiais')}
-          className={`flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
-            activeTab === 'materiais' ? 'text-emerald-400 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <Dumbbell className="w-5 h-5 mb-0.5" />
-          <span>Materiais</span>
-        </button>
-
-        <button
-          onClick={() => onNavigate('kits')}
-          className={`flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
-            activeTab === 'kits' ? 'text-emerald-400 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <Boxes className="w-5 h-5 mb-0.5" />
-          <span>Kits</span>
-        </button>
-      </div>
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0B1418]/95 backdrop-blur-md border-t border-white/10 pb-[env(safe-area-inset-bottom)]">
+        <div className="flex items-stretch justify-around h-16 px-1">
+          {mobileTabs.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onNavigate(item.id)}
+                aria-current={isActive ? 'page' : undefined}
+                className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-medium transition-colors active:bg-white/5 ${
+                  isActive ? 'text-emerald-400 font-bold' : 'text-slate-400'
+                }`}
+              >
+                {isActive && (
+                  <span className="absolute top-0 h-0.5 w-8 rounded-full bg-emerald-400" />
+                )}
+                <span className="relative">
+                  <Icon className="w-5 h-5" />
+                  {item.id === 'emprestimos' && overdueCount > 0 && (
+                    <span className="absolute -top-0.5 -right-1.5 min-w-[14px] h-[14px] px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-[#0B1418]">
+                      {overdueCount}
+                    </span>
+                  )}
+                </span>
+                <span className="truncate max-w-full px-0.5">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </>
   );
 };

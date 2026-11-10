@@ -99,7 +99,7 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-      <div className="relative w-full max-w-lg bg-[#102027] text-slate-100 rounded-3xl border border-white/15 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-lg bg-[#102027] text-slate-100 rounded-3xl border border-white/15 p-6 shadow-2xl max-h-[90dvh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between pb-3 border-b border-white/10">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">

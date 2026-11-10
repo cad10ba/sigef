@@ -103,7 +103,7 @@ export const NormsPage: React.FC<NormsPageProps> = ({ userRole }) => {
       <form onSubmit={handleSaveAll} className="space-y-6">
         {/* Coordination Contact Card */}
         <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#102027] to-[#12242B] border border-emerald-500/30 shadow-xl">
-          <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-1 pb-3 border-b border-white/10 mb-4">
             <div className="flex items-center gap-2">
               <Building className="w-5 h-5 text-emerald-400" />
               <h3 className="text-sm sm:text-base font-bold text-white">
