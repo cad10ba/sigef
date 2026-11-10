@@ -33,6 +33,18 @@ export default function App() {
     sigefStorage.setTheme(currentTheme);
   }, []);
 
+  // Ao voltar para a aba, recarrega o Supabase: registros criados no painel
+  // do banco (docentes, reservas, etc.) passam a aparecer sem recarregar.
+  useEffect(() => {
+    const refreshIfVisible = () => {
+      if (document.visibilityState === 'visible' && sigefStorage.hasSession()) {
+        sigefStorage.syncFromSupabase().catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', refreshIfVisible);
+    return () => document.removeEventListener('visibilitychange', refreshIfVisible);
+  }, []);
+
   const [tick, setTick] = useState(0);
   useEffect(() => {
     return subscribeToStorage(() => {

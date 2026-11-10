@@ -12,6 +12,9 @@ front-end não importa, exibe nem copia mais nenhum SQL.
 | 3     | `003_rls_policies.sql`               | Fecha o RLS: apenas leitura pública de `spaces`/`materials`/`kits`/`notices`/`regulation`; escrita só com sessão Supabase Auth. |
 | 4     | `004_sessions_and_user_listing.sql`  | Cria `app_sessions`, `sigef_login_session` (login + token), `sigef_list_users` (admin lista as contas) e `sigef_logout`. |
 | 5     | `005_requesters_listing.sql`         | Cria `sigef_list_requesters`: lista docentes/alunos/servidores apenas para quem tem sessão válida, sem abrir `requesters` para `anon`. |
+| 6     | `006_authenticated_sync.sql`         | Fecha o ciclo de sincronização: `sigef_list_loans`, `sigef_list_reservations`, `sigef_upsert_rows` e `sigef_delete_rows` (escrita/leitura autenticadas por token de sessão). Sem esta migração, dados adicionados/excluídos no app não chegam ao Supabase. |
+| 7     | `007_users_as_requesters.sql`        | Toda conta de `app_users` passa a ter um solicitante correspondente em `requesters` (trigger), para docentes cadastrados fora do app aparecerem na lista. |
+| 8     | `008_delete_person.sql`              | Cria `sigef_delete_person`: excluir um docente/usuário apaga também a conta em `app_users` e suas sessões (somente admin; preserva a própria conta e o último administrador). |
 
 `003_rls_policies.sql` **precisa** rodar depois de `001` e `002`: ele remove as
 políticas permissivas criadas pelo schema e depende das funções de

@@ -52,9 +52,108 @@ const AUTH_GENERIC_FAILURE =
 const AUTH_UNAVAILABLE =
   'Não foi possível validar suas credenciais agora. Verifique a conexão e tente novamente.';
 
+// Token opaco emitido por sigef_login_session. Depois do endurecimento do RLS,
+// é ele que autoriza leitura/escrita das tabelas fechadas ao cliente anônimo.
+function getSessionToken(): string | null {
+  try {
+    return (
+      localStorage.getItem(STORAGE_KEYS.SESSION_TOKEN) ??
+      sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN)
+    );
+  } catch {
+    return null;
+  }
+}
+
+// O token vive no localStorage: fechar a aba não pode deixar o app "logado"
+// mas sem autorização de escrita (era isso que fazia exclusões ficarem só
+// locais e reaparecerem na próxima sincronização).
+function setSessionToken(token: string): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.SESSION_TOKEN, token);
+    sessionStorage.removeItem(STORAGE_KEYS.SESSION_TOKEN);
+  } catch {
+    // storage indisponível: a sessão vale só para a chamada atual
+  }
+}
+
+// Login pelo Supabase Auth: resolve matrícula/SIAPE para o e-mail cadastrado,
+// autentica em auth.users e converte o JWT em token de sessão do app.
+async function signInWithSupabaseAuth(
+  identifier: string,
+  password: string
+): Promise<{ success: boolean; message?: string; user?: any; session_token?: string } | null> {
+  try {
+    const clean = identifier.trim();
+    let email = clean.includes('@') ? clean.toLowerCase() : '';
+
+    const { data: resolved } = await supabase.rpc('sigef_resolve_identifier', {
+      p_identifier: clean,
+    });
+    if (resolved?.success && resolved.email) {
+      email = String(resolved.email).toLowerCase();
+    }
+    if (!email) return null;
+
+    const { data: signIn, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !signIn?.session) {
+      if (error) console.warn('Supabase Auth recusou o login:', error.message);
+      return null;
+    }
+
+    const { data: session, error: sessionErr } = await supabase.rpc('sigef_session_from_auth');
+    if (sessionErr || !session?.success) {
+      console.warn(
+        'Falha ao abrir a sessão do app:',
+        sessionErr?.message || session?.message || 'erro desconhecido'
+      );
+      await supabase.auth.signOut();
+      return null;
+    }
+
+    return session;
+  } catch (err) {
+    console.warn('Erro no login pelo Supabase Auth:', err);
+    return null;
+  }
+}
+
+// Escritas passam pela RPC sigef_upsert_rows (SECURITY DEFINER + token de
+// sessão). Sem sessão não há escrita autorizada; nesse caso mantemos a chamada
+// direta para instalações que ainda usem políticas permissivas.
 async function safeSupabaseUpsert(table: string, data: any) {
   try {
-    const { error } = await supabase.from(table).upsert(data);
+    const rows = Array.isArray(data) ? data : [data];
+    if (rows.length === 0) return;
+
+    const token = getSessionToken();
+    if (token) {
+      // Uma falha passageira (rede/token renovando) não pode perder o registro
+      // criado no aplicativo: tenta uma vez mais antes de desistir.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const { data: res, error } = await supabase.rpc('sigef_upsert_rows', {
+          p_token: token,
+          p_table: table,
+          p_rows: rows,
+        });
+        if (!error && res?.success !== false) return;
+        if (attempt === 0) {
+          console.warn(
+            `Supabase upsert into ${table} retry:`,
+            error?.message || res?.message || 'falha na sincronização'
+          );
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        } else {
+          console.warn(
+            `Supabase upsert into ${table} note:`,
+            error?.message || res?.message || 'falha na sincronização'
+          );
+        }
+      }
+      return;
+    }
+
+    const { error } = await supabase.from(table).upsert(rows);
     if (error && error.code !== 'PGRST205') {
       console.warn(`Supabase upsert into ${table} note:`, error.message);
     }
@@ -64,30 +163,152 @@ async function safeSupabaseUpsert(table: string, data: any) {
 }
 
 async function safeSupabaseDelete(table: string, id: string) {
-  try {
-    const { error } = await supabase.from(table).delete().eq('id', id);
-    if (error && error.code !== 'PGRST205') {
-      console.warn(`Supabase delete from ${table} note:`, error.message);
-    }
-  } catch {
-    // Graceful offline/missing tables fallback
-  }
+  await safeSupabaseDeleteMultiple(table, [id]);
 }
 
 async function safeSupabaseDeleteMultiple(table: string, ids: string[]) {
   try {
     if (!ids || ids.length === 0) return;
+
+    const token = getSessionToken();
+    if (token) {
+      const { data: res, error } = await supabase.rpc('sigef_delete_rows', {
+        p_token: token,
+        p_table: table,
+        p_ids: ids,
+      });
+      if (error || res?.success === false) {
+        console.warn(
+          `Supabase delete from ${table} note:`,
+          error?.message || res?.message || 'falha na sincronização'
+        );
+        enqueueDeletions(table, ids);
+      }
+      return;
+    }
+
+    // Sem sessão a nuvem recusa a exclusão: guarda para reenviar depois.
+    enqueueDeletions(table, ids);
+
     const { error } = await supabase.from(table).delete().in('id', ids);
     if (error && error.code !== 'PGRST205') {
-      console.warn(`Supabase delete multiple from ${table} note:`, error.message);
+      console.warn(`Supabase delete from ${table} note:`, error.message);
     }
   } catch {
-    // Graceful offline/missing tables fallback
+    // Falha de rede: a exclusão fica pendente e é reenviada na próxima sessão.
+    enqueueDeletions(table, ids);
   }
+}
+
+// ----------------------------------------------------------------
+// Exclusões pendentes
+// ----------------------------------------------------------------
+// Uma exclusão feita sem sessão válida (aba nova, rede fora) não pode virar
+// "exclusão só local": o registro voltaria na próxima leitura. As ids ficam
+// numa fila e são reenviadas assim que houver sessão.
+const PENDING_DELETES_KEY = 'sigef_pending_deletes_v1';
+
+type PendingDelete = { table: string; id: string };
+
+function readPendingDeletes(): PendingDelete[] {
+  try {
+    const raw = localStorage.getItem(PENDING_DELETES_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePendingDeletes(list: PendingDelete[]): void {
+  try {
+    if (list.length === 0) localStorage.removeItem(PENDING_DELETES_KEY);
+    else localStorage.setItem(PENDING_DELETES_KEY, JSON.stringify(list));
+  } catch {
+    // sem storage: nada a recuperar depois
+  }
+}
+
+function enqueueDeletions(table: string, ids: string[]): void {
+  const pending = readPendingDeletes();
+  ids.forEach((id) => {
+    if (!pending.some((p) => p.table === table && p.id === id)) {
+      pending.push({ table, id });
+    }
+  });
+  writePendingDeletes(pending);
+}
+
+async function flushPendingDeletions(): Promise<void> {
+  const token = getSessionToken();
+  if (!token) return;
+
+  const pending = readPendingDeletes();
+  if (pending.length === 0) return;
+
+  const byTable = new Map<string, string[]>();
+  pending.forEach((p) => {
+    byTable.set(p.table, [...(byTable.get(p.table) || []), p.id]);
+  });
+
+  const remaining: PendingDelete[] = [];
+  for (const [table, ids] of byTable) {
+    try {
+      const { data, error } = await supabase.rpc('sigef_delete_rows', {
+        p_token: token,
+        p_table: table,
+        p_ids: ids,
+      });
+      if (error || data?.success === false) {
+        console.warn(
+          `Exclusões pendentes de ${table} não enviadas:`,
+          error?.message || data?.message || 'falha na sincronização'
+        );
+        ids.forEach((id) => remaining.push({ table, id }));
+      }
+    } catch {
+      ids.forEach((id) => remaining.push({ table, id }));
+    }
+  }
+  writePendingDeletes(remaining);
+}
+
+// ----------------------------------------------------------------
+// Leitura não pode sobrescrever escrita local
+// ----------------------------------------------------------------
+// Toda sincronização lê a nuvem e substitui a lista local. Se uma reserva for
+// criada enquanto essa leitura está em andamento, o resultado (anterior à
+// gravação) apagava da tela um registro que já existia no Supabase — ele só
+// reaparecia na sincronização seguinte. Cada escrita local avança um contador
+// por tabela; a leitura só aplica o resultado quando nada mudou no meio.
+const tableWriteSeq = new Map<string, number>();
+
+function markLocalWrite(table: string): void {
+  tableWriteSeq.set(table, (tableWriteSeq.get(table) || 0) + 1);
+}
+
+function writeSeqOf(table: string): number {
+  return tableWriteSeq.get(table) || 0;
 }
 
 async function safeSupabaseDeleteAll(table: string) {
   try {
+    const token = getSessionToken();
+    if (token) {
+      const { data: res, error } = await supabase.rpc('sigef_delete_rows', {
+        p_token: token,
+        p_table: table,
+        p_ids: null,
+      });
+      if (error || res?.success === false) {
+        console.warn(
+          `Supabase delete all from ${table} note:`,
+          error?.message || res?.message || 'falha na sincronização'
+        );
+      }
+      return;
+    }
+
     const { error } = await supabase.from(table).delete().neq('id', '');
     if (error && error.code !== 'PGRST205') {
       console.warn(`Supabase delete all from ${table} note:`, error.message);
@@ -138,6 +359,8 @@ const SESSION_KEYS = new Set<string>([
 
 // Cache permitido no localStorage: só dado operacional não sensível.
 const PERSISTED_KEYS = new Set<string>([
+  STORAGE_KEYS.SESSION_TOKEN,
+  'sigef_pending_deletes_v1',
   STORAGE_KEYS.SPACES,
   STORAGE_KEYS.MATERIALS,
   STORAGE_KEYS.KITS,
@@ -352,7 +575,7 @@ export const sigefStorage = {
     message?: string;
     users?: UserProfile[];
   }> {
-    const token = sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+    const token = getSessionToken();
     if (!token) {
       return { success: false, message: 'Sessão expirada. Entre novamente para ver os usuários.' };
     }
@@ -392,10 +615,12 @@ export const sigefStorage = {
     message?: string;
     requesters?: Requester[];
   }> {
-    const token = sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+    const token = getSessionToken();
     if (!token) {
       return { success: false, message: 'Sessão expirada. Entre novamente para ver os usuários.' };
     }
+
+    const requestersSeq = writeSeqOf('requesters');
 
     try {
       const { data, error } = await supabase.rpc('sigef_list_requesters', { p_token: token });
@@ -408,6 +633,11 @@ export const sigefStorage = {
       }
 
       const requesters: Requester[] = (data.requesters || []).map(rowToRequester);
+      if (writeSeqOf('requesters') !== requestersSeq) {
+        // Houve cadastro/alteração local durante a leitura: a lista local é
+        // mais nova que a resposta e permanece intacta.
+        return { success: true, requesters: this.getRequesters() };
+      }
       setStoredItem(STORAGE_KEYS.REQUESTERS, requesters);
       return { success: true, requesters };
     } catch (err) {
@@ -429,18 +659,22 @@ export const sigefStorage = {
       };
     }
 
-    // Única verificação de credenciais: a RPC sigef_login compara a senha com o
-    // hash (bcrypt) dentro do banco e devolve o perfil. O navegador não lê a
-    // lista de usuários, não compara senha e não tem caminho alternativo.
+    // A senha é verificada pelo Supabase Auth (auth.users). Se o Auth estiver
+    // indisponível, a RPC sigef_login_session ainda confere o mesmo hash bcrypt
+    // guardado em app_users — nenhuma senha chega ao navegador em nenhum caso.
     try {
-      const { data, error } = await supabase.rpc('sigef_login_session', {
-        p_identifier: cleanId,
-        p_password: password,
-      });
+      let data = await signInWithSupabaseAuth(cleanId, password);
 
-      if (error) {
-        console.error('Falha ao chamar sigef_login_session:', error.message);
-        return { success: false, message: AUTH_UNAVAILABLE };
+      if (!data) {
+        const legacy = await supabase.rpc('sigef_login_session', {
+          p_identifier: cleanId,
+          p_password: password,
+        });
+        if (legacy.error) {
+          console.error('Falha ao chamar sigef_login_session:', legacy.error.message);
+        } else if (legacy.data?.success && legacy.data.user) {
+          data = legacy.data;
+        }
       }
 
       if (!data?.success || !data.user) {
@@ -474,7 +708,7 @@ export const sigefStorage = {
       this.setAuthUser(cloudUser);
       // Token opaco da sessão: autoriza a listagem de contas no servidor.
       if (data.session_token) {
-        sessionStorage.setItem(STORAGE_KEYS.SESSION_TOKEN, data.session_token);
+        setSessionToken(data.session_token);
       }
       // Dados pessoais (solicitantes, empréstimos, reservas, usuários) são
       // buscados sob demanda: sem sessão válida a RLS devolve vazio/erro e
@@ -511,6 +745,11 @@ export const sigefStorage = {
     if (data.password.trim().length < 4) {
       return { success: false, message: 'A senha deve conter no mínimo 4 caracteres.' };
     }
+
+    // Cadastro feito por um administrador (outra pessoa) não pode trocar a
+    // sessão de quem está usando o sistema pela do novo usuário: sem isso a
+    // exclusão passava a ser recusada com "somente administradores".
+    const isSelfSignup = !getSessionToken();
 
     let roleLabel = 'Docente de Educação Física';
     if (data.role === 'admin') roleLabel = 'Coordenação de Educação Física (Administrador)';
@@ -559,6 +798,15 @@ export const sigefStorage = {
         roleLabel: res.user.roleLabel || draft.roleLabel,
         createdAt: res.user.createdAt || draft.createdAt,
       };
+
+      // Só o cadastro próprio abre sessão: a conta recém-criada passa a
+      // sincronizar dados com o Supabase sem afetar quem já está logado.
+      if (isSelfSignup) {
+        const session = await signInWithSupabaseAuth(cleanEmail, data.password);
+        if (session?.session_token) {
+          setSessionToken(session.session_token);
+        }
+      }
     } catch (err) {
       console.error('Erro inesperado no cadastro:', err);
       return {
@@ -578,8 +826,10 @@ export const sigefStorage = {
     );
     if (!existingReq) {
       const reqType = data.role === 'admin' ? 'servidor' : data.role;
+      // Mesmo id que o trigger app_users_requester_sync gera no banco: assim o
+      // upsert atualiza a linha criada pelo trigger em vez de duplicá-la.
       const newReq: Requester = {
-        id: 'req-' + Date.now(),
+        id: 'req-' + newUser.id.replace(/^user-/, ''),
         name: newUser.name,
         type: reqType as any,
         registration: newUser.registration,
@@ -593,18 +843,25 @@ export const sigefStorage = {
       safeSupabaseUpsert('requesters', requesterToRow(newReq));
     }
 
-    this.setCurrentUser(newUser);
-    this.setAuthUser(newUser);
+    // A troca do usuário logado só faz sentido no cadastro próprio; quando um
+    // admin cria a conta de outra pessoa, ele continua no sistema como admin.
+    if (isSelfSignup) {
+      this.setCurrentUser(newUser);
+      this.setAuthUser(newUser);
+    }
 
     return {
       success: true,
-      message: `Conta criada com sucesso! Bem-vindo(a) ao SIGEF, ${newUser.name}.`,
+      message: isSelfSignup
+        ? `Conta criada com sucesso! Bem-vindo(a) ao SIGEF, ${newUser.name}.`
+        : `Conta de ${newUser.name} criada com sucesso!`,
       user: newUser,
     };
   },
 
   logout(): void {
-    const token = sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+    void supabase.auth.signOut().catch(() => {});
+    const token = getSessionToken();
     if (token) {
       // Revoga a sessão no servidor sem atrasar a saída da interface.
       void supabase.rpc('sigef_logout', { p_token: token }).then(
@@ -938,13 +1195,44 @@ export const sigefStorage = {
       list.push(req);
     }
     setStoredItem(STORAGE_KEYS.REQUESTERS, list);
+    markLocalWrite('requesters');
     safeSupabaseUpsert('requesters', requesterToRow(req));
   },
 
-  deleteRequester(requesterId: string): void {
+  // Exclui o cadastro e, quando ele pertence a uma conta do sistema (docente,
+  // monitor, admin), apaga também a conta no Supabase. A decisão é do
+  // servidor (sigef_delete_person), que exige sessão de administrador.
+  async deleteRequester(
+    requesterId: string
+  ): Promise<{ success: boolean; message?: string }> {
+    const token = getSessionToken();
+
+    if (token) {
+      try {
+        const { data, error } = await supabase.rpc('sigef_delete_person', {
+          p_token: token,
+          p_requester_id: requesterId,
+        });
+        if (error) {
+          console.warn('Supabase delete person note:', error.message);
+        }
+        if (data?.success === false) {
+          return {
+            success: false,
+            message: data.message || 'Não foi possível excluir o cadastro.',
+          };
+        }
+      } catch {
+        // Sem sincronização agora: a remoção local abaixo continua valendo.
+      }
+    } else {
+      void safeSupabaseDelete('requesters', requesterId);
+    }
+
     const list = this.getRequesters().filter((r) => r.id !== requesterId);
     setStoredItem(STORAGE_KEYS.REQUESTERS, list);
-    safeSupabaseDelete('requesters', requesterId);
+    markLocalWrite('requesters');
+    return { success: true };
   },
 
   findRequester(query: string): Requester | undefined {
@@ -988,6 +1276,9 @@ export const sigefStorage = {
       list.push(reservation);
     }
 
+    // Reservas geradas pela recorrência também precisam ir para a nuvem.
+    const toPersist: Reservation[] = [reservation];
+
     // If recurring weekly until end date, create subsequent reservations
     // (only for new reservations; editing must not duplicate the recurrence)
     if (idx < 0 && reservation.recurrence === 'weekly' && reservation.recurrenceUntil) {
@@ -1008,24 +1299,30 @@ export const sigefStorage = {
           reservation.endTime
         );
         if (!subConflict) {
-          list.push({
+          const recurring: Reservation = {
             ...reservation,
             id: 'res-' + Date.now() + '-' + Math.floor(Math.random() * 10000),
             date: recurringDate,
             recurrence: 'none',
-          });
+          };
+          list.push(recurring);
+          toPersist.push(recurring);
         }
       }
     }
 
     setStoredItem(STORAGE_KEYS.RESERVATIONS, list);
-    safeSupabaseUpsert('reservations', reservationToRow(reservation));
+    // Marca a escrita antes do envio: uma leitura da nuvem que já estava em
+    // andamento não pode apagar da tela a reserva recém-criada.
+    markLocalWrite('reservations');
+    safeSupabaseUpsert('reservations', toPersist.map(reservationToRow));
     return { success: true };
   },
 
   deleteReservation(reservationId: string): void {
     const list = this.getReservations().filter((r) => r.id !== reservationId);
     setStoredItem(STORAGE_KEYS.RESERVATIONS, list);
+    markLocalWrite('reservations');
     safeSupabaseDelete('reservations', reservationId);
   },
 
@@ -1114,6 +1411,7 @@ export const sigefStorage = {
     const loans = this.getLoans();
     loans.unshift(loan);
     setStoredItem(STORAGE_KEYS.LOANS, loans);
+    markLocalWrite('loans');
     this.refreshAllKitStatuses();
     safeSupabaseUpsert('loans', loanToRow(loan));
     return { success: true };
@@ -1188,6 +1486,7 @@ export const sigefStorage = {
     }
 
     setStoredItem(STORAGE_KEYS.LOANS, loans);
+    markLocalWrite('loans');
     safeSupabaseUpsert('loans', loanToRow(loan));
 
     // If requester had delay block, check if they still have overdue loans
@@ -1269,6 +1568,12 @@ export const sigefStorage = {
   },
 
   // Supabase Cloud Sync Methods
+  // Existe sessão válida nesta aba? Usado para saber se as listas de dado
+  // pessoal (solicitantes, empréstimos, reservas) podem ser recarregadas.
+  hasSession(): boolean {
+    return Boolean(getSessionToken());
+  },
+
   async testSupabaseStatus() {
     return testSupabaseConnection();
   },
@@ -1276,10 +1581,19 @@ export const sigefStorage = {
   async syncFromSupabase(): Promise<{ success: boolean; message: string; count: number }> {
     try {
       let count = 0;
+      const token = getSessionToken();
+
+      // Exclusões feitas sem sessão válida são reenviadas primeiro: assim a
+      // nuvem não devolve um registro que o usuário já removeu.
+      await flushPendingDeletions();
+
+      // O Supabase é a fonte da verdade: cada lista é substituída mesmo quando
+      // o banco está vazio, para que uma exclusão feita na nuvem desapareça do
+      // aplicativo. Se a leitura falhar, a lista local é preservada.
 
       // 1. Spaces
       const { data: spacesData, error: spacesErr } = await supabase.from('spaces').select('*');
-      if (!spacesErr && spacesData && spacesData.length > 0) {
+      if (!spacesErr && spacesData) {
         const spaces = spacesData.map(rowToSpace);
         setStoredItem(STORAGE_KEYS.SPACES, spaces);
         count += spaces.length;
@@ -1287,7 +1601,7 @@ export const sigefStorage = {
 
       // 2. Materials
       const { data: matData, error: matErr } = await supabase.from('materials').select('*');
-      if (!matErr && matData && matData.length > 0) {
+      if (!matErr && matData) {
         const materials = matData.map(rowToMaterial);
         setStoredItem(STORAGE_KEYS.MATERIALS, materials);
         count += materials.length;
@@ -1295,48 +1609,80 @@ export const sigefStorage = {
 
       // 3. Kits
       const { data: kitData, error: kitErr } = await supabase.from('kits').select('*');
-      if (!kitErr && kitData && kitData.length > 0) {
+      if (!kitErr && kitData) {
         const kits = kitData.map(rowToKit);
         setStoredItem(STORAGE_KEYS.KITS, kits);
         count += kits.length;
       }
 
-      // 4. Requesters — via RPC com token da sessão (a tabela é fechada a anon).
-      const reqRes = await this.listRequesters();
-      if (reqRes.success && reqRes.requesters) {
-        count += reqRes.requesters.length;
-      }
-
-      // 5. Loans
-      const { data: loanData, error: loanErr } = await supabase.from('loans').select('*');
-      if (!loanErr && loanData && loanData.length > 0) {
-        const loans = loanData.map(rowToLoan);
-        setStoredItem(STORAGE_KEYS.LOANS, loans);
-        count += loans.length;
-      }
-
-      // 6. Reservations
-      const { data: resData, error: resErr } = await supabase.from('reservations').select('*');
-      if (!resErr && resData && resData.length > 0) {
-        const reservations = resData.map(rowToReservation);
-        setStoredItem(STORAGE_KEYS.RESERVATIONS, reservations);
-        count += reservations.length;
-      }
-
-      // 7. Notices
+      // 4. Notices
       const { data: notData, error: notErr } = await supabase.from('notices').select('*');
-      if (!notErr && notData && notData.length > 0) {
+      if (!notErr && notData) {
         const notices = notData.map(rowToNotice);
         setStoredItem(STORAGE_KEYS.NOTICES, notices);
         count += notices.length;
       }
 
-      // 8. Perfis de usuário (somente colunas de perfil; o hash nunca é lido
+      // 5. Regulation (registro único): só sobrescreve quando existe na nuvem,
+      //    para não apagar o texto padrão de uma base ainda não configurada.
+      const { data: regData, error: regErr } = await supabase
+        .from('regulation')
+        .select('*')
+        .limit(1);
+      const regulationRow = !regErr && regData ? regData[0] : undefined;
+      if (regulationRow) {
+        setStoredItem(STORAGE_KEYS.REGULATION, {
+          rules: Array.isArray(regulationRow.rules) ? regulationRow.rules : [],
+          contact: regulationRow.contact || {},
+        } as CoefRegulation);
+        count += 1;
+      }
+
+      // 6. Requesters — via RPC com token da sessão (a tabela é fechada a anon).
+      const reqRes = await this.listRequesters();
+      if (reqRes.success && reqRes.requesters) {
+        count += reqRes.requesters.length;
+      }
+
+      // 7/8. Loans e reservations também são fechadas a anon: a leitura só
+      //      acontece pela RPC autenticada (migração 006).
+      if (token) {
+        const loansSeq = writeSeqOf('loans');
+        const { data: loanRes, error: loanErr } = await supabase.rpc('sigef_list_loans', {
+          p_token: token,
+        });
+        if (!loanErr && loanRes?.success && Array.isArray(loanRes.loans)) {
+          // Escrita local durante a leitura: a resposta é anterior a ela.
+          if (writeSeqOf('loans') === loansSeq) {
+            const loans = loanRes.loans.map(rowToLoan);
+            setStoredItem(STORAGE_KEYS.LOANS, loans);
+            count += loans.length;
+          }
+        } else if (loanErr) {
+          console.warn('Falha ao carregar empréstimos do Supabase:', loanErr.message);
+        }
+
+        const reservationsSeq = writeSeqOf('reservations');
+        const { data: resRes, error: resErr } = await supabase.rpc('sigef_list_reservations', {
+          p_token: token,
+        });
+        if (!resErr && resRes?.success && Array.isArray(resRes.reservations)) {
+          if (writeSeqOf('reservations') === reservationsSeq) {
+            const reservations = resRes.reservations.map(rowToReservation);
+            setStoredItem(STORAGE_KEYS.RESERVATIONS, reservations);
+            count += reservations.length;
+          }
+        } else if (resErr) {
+          console.warn('Falha ao carregar reservas do Supabase:', resErr.message);
+        }
+      }
+
+      // 9. Perfis de usuário (somente colunas de perfil; o hash nunca é lido
       //    pelo cliente e a lista não é usada para validar login).
       const { data: userData, error: userErr } = await supabase
         .from('app_users')
         .select('id, name, role, registration, email, role_label, created_at');
-      if (!userErr && userData && userData.length > 0) {
+      if (!userErr && userData) {
         const users = userData.map(rowToUser);
         setStoredItem(STORAGE_KEYS.USERS, users);
         count += users.length;
@@ -1360,51 +1706,54 @@ export const sigefStorage = {
 
   async syncToSupabase(): Promise<{ success: boolean; message: string; count: number }> {
     try {
+      const token = getSessionToken();
+      if (!token) {
+        return {
+          success: false,
+          message: 'Entre novamente para exportar os dados com segurança.',
+          count: 0,
+        };
+      }
+
       let count = 0;
-      const spaces = this.getSpaces();
-      if (spaces.length > 0) {
-        const { error } = await supabase.from('spaces').upsert(spaces.map(spaceToRow));
-        if (!error) count += spaces.length;
-      }
+      const failures: string[] = [];
 
-      const materials = this.getMaterials();
-      if (materials.length > 0) {
-        const { error } = await supabase.from('materials').upsert(materials.map(materialToRow));
-        if (!error) count += materials.length;
-      }
+      const pushRows = async (table: string, rows: any[]) => {
+        if (rows.length === 0) return;
+        const { data, error } = await supabase.rpc('sigef_upsert_rows', {
+          p_token: token,
+          p_table: table,
+          p_rows: rows,
+        });
+        if (error || data?.success === false) {
+          failures.push(table);
+          console.warn(
+            `Falha ao exportar ${table} para o Supabase:`,
+            error?.message || data?.message || 'erro desconhecido'
+          );
+          return;
+        }
+        count += rows.length;
+      };
 
-      const kits = this.getKits();
-      if (kits.length > 0) {
-        const { error } = await supabase.from('kits').upsert(kits.map(kitToRow));
-        if (!error) count += kits.length;
-      }
-
-      const requesters = this.getRequesters();
-      if (requesters.length > 0) {
-        const { error } = await supabase.from('requesters').upsert(requesters.map(requesterToRow));
-        if (!error) count += requesters.length;
-      }
-
-      const loans = this.getLoans();
-      if (loans.length > 0) {
-        const { error } = await supabase.from('loans').upsert(loans.map(loanToRow));
-        if (!error) count += loans.length;
-      }
-
-      const reservations = this.getReservations();
-      if (reservations.length > 0) {
-        const { error } = await supabase.from('reservations').upsert(reservations.map(reservationToRow));
-        if (!error) count += reservations.length;
-      }
-
-      const notices = this.getNotices();
-      if (notices.length > 0) {
-        const { error } = await supabase.from('notices').upsert(notices.map(noticeToRow));
-        if (!error) count += notices.length;
-      }
+      await pushRows('spaces', this.getSpaces().map(spaceToRow));
+      await pushRows('materials', this.getMaterials().map(materialToRow));
+      await pushRows('kits', this.getKits().map(kitToRow));
+      await pushRows('requesters', this.getRequesters().map(requesterToRow));
+      await pushRows('loans', this.getLoans().map(loanToRow));
+      await pushRows('reservations', this.getReservations().map(reservationToRow));
+      await pushRows('notices', this.getNotices().map(noticeToRow));
 
       // app_users não é exportado: credenciais só são gravadas pelas RPCs
       // sigef_register_user / sigef_change_password, sempre com hash.
+
+      if (failures.length > 0) {
+        return {
+          success: false,
+          message: `Não foi possível exportar: ${failures.join(', ')}.`,
+          count,
+        };
+      }
 
       return {
         success: true,
