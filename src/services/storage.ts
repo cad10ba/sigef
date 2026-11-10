@@ -570,6 +570,11 @@ export const sigefStorage = {
       return { success: false, message: 'A senha deve conter no mínimo 4 caracteres.' };
     }
 
+    // Cadastro feito por um administrador (outra pessoa) não pode trocar a
+    // sessão de quem está usando o sistema pela do novo usuário: sem isso a
+    // exclusão passava a ser recusada com "somente administradores".
+    const isSelfSignup = !getSessionToken();
+
     let roleLabel = 'Docente de Educação Física';
     if (data.role === 'admin') roleLabel = 'Coordenação de Educação Física (Administrador)';
     else if (data.role === 'monitor') roleLabel = 'Monitor / Bolsista de Ed. Física';
@@ -618,14 +623,16 @@ export const sigefStorage = {
         createdAt: res.user.createdAt || draft.createdAt,
       };
 
-      // O cadastro não abre sessão sozinho: emitimos o token agora para que a
-      // conta recém-criada já possa sincronizar dados com o Supabase.
-      const { data: sessionData } = await supabase.rpc('sigef_login_session', {
-        p_identifier: cleanEmail,
-        p_password: data.password,
-      });
-      if (sessionData?.session_token) {
-        sessionStorage.setItem(STORAGE_KEYS.SESSION_TOKEN, sessionData.session_token);
+      // Só o cadastro próprio abre sessão: a conta recém-criada passa a
+      // sincronizar dados com o Supabase sem afetar quem já está logado.
+      if (isSelfSignup) {
+        const { data: sessionData } = await supabase.rpc('sigef_login_session', {
+          p_identifier: cleanEmail,
+          p_password: data.password,
+        });
+        if (sessionData?.session_token) {
+          sessionStorage.setItem(STORAGE_KEYS.SESSION_TOKEN, sessionData.session_token);
+        }
       }
     } catch (err) {
       console.error('Erro inesperado no cadastro:', err);
@@ -663,12 +670,18 @@ export const sigefStorage = {
       safeSupabaseUpsert('requesters', requesterToRow(newReq));
     }
 
-    this.setCurrentUser(newUser);
-    this.setAuthUser(newUser);
+    // A troca do usuário logado só faz sentido no cadastro próprio; quando um
+    // admin cria a conta de outra pessoa, ele continua no sistema como admin.
+    if (isSelfSignup) {
+      this.setCurrentUser(newUser);
+      this.setAuthUser(newUser);
+    }
 
     return {
       success: true,
-      message: `Conta criada com sucesso! Bem-vindo(a) ao SIGEF, ${newUser.name}.`,
+      message: isSelfSignup
+        ? `Conta criada com sucesso! Bem-vindo(a) ao SIGEF, ${newUser.name}.`
+        : `Conta de ${newUser.name} criada com sucesso!`,
       user: newUser,
     };
   },
