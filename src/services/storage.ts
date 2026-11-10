@@ -56,8 +56,64 @@ const AUTH_UNAVAILABLE =
 // é ele que autoriza leitura/escrita das tabelas fechadas ao cliente anônimo.
 function getSessionToken(): string | null {
   try {
-    return sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+    return (
+      localStorage.getItem(STORAGE_KEYS.SESSION_TOKEN) ??
+      sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN)
+    );
   } catch {
+    return null;
+  }
+}
+
+// O token vive no localStorage: fechar a aba não pode deixar o app "logado"
+// mas sem autorização de escrita (era isso que fazia exclusões ficarem só
+// locais e reaparecerem na próxima sincronização).
+function setSessionToken(token: string): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.SESSION_TOKEN, token);
+    sessionStorage.removeItem(STORAGE_KEYS.SESSION_TOKEN);
+  } catch {
+    // storage indisponível: a sessão vale só para a chamada atual
+  }
+}
+
+// Login pelo Supabase Auth: resolve matrícula/SIAPE para o e-mail cadastrado,
+// autentica em auth.users e converte o JWT em token de sessão do app.
+async function signInWithSupabaseAuth(
+  identifier: string,
+  password: string
+): Promise<{ success: boolean; message?: string; user?: any; session_token?: string } | null> {
+  try {
+    const clean = identifier.trim();
+    let email = clean.includes('@') ? clean.toLowerCase() : '';
+
+    const { data: resolved } = await supabase.rpc('sigef_resolve_identifier', {
+      p_identifier: clean,
+    });
+    if (resolved?.success && resolved.email) {
+      email = String(resolved.email).toLowerCase();
+    }
+    if (!email) return null;
+
+    const { data: signIn, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !signIn?.session) {
+      if (error) console.warn('Supabase Auth recusou o login:', error.message);
+      return null;
+    }
+
+    const { data: session, error: sessionErr } = await supabase.rpc('sigef_session_from_auth');
+    if (sessionErr || !session?.success) {
+      console.warn(
+        'Falha ao abrir a sessão do app:',
+        sessionErr?.message || session?.message || 'erro desconhecido'
+      );
+      await supabase.auth.signOut();
+      return null;
+    }
+
+    return session;
+  } catch (err) {
+    console.warn('Erro no login pelo Supabase Auth:', err);
     return null;
   }
 }
@@ -115,17 +171,95 @@ async function safeSupabaseDeleteMultiple(table: string, ids: string[]) {
           `Supabase delete from ${table} note:`,
           error?.message || res?.message || 'falha na sincronização'
         );
+        enqueueDeletions(table, ids);
       }
       return;
     }
+
+    // Sem sessão a nuvem recusa a exclusão: guarda para reenviar depois.
+    enqueueDeletions(table, ids);
 
     const { error } = await supabase.from(table).delete().in('id', ids);
     if (error && error.code !== 'PGRST205') {
       console.warn(`Supabase delete from ${table} note:`, error.message);
     }
   } catch {
-    // Graceful offline/missing tables fallback
+    // Falha de rede: a exclusão fica pendente e é reenviada na próxima sessão.
+    enqueueDeletions(table, ids);
   }
+}
+
+// ----------------------------------------------------------------
+// Exclusões pendentes
+// ----------------------------------------------------------------
+// Uma exclusão feita sem sessão válida (aba nova, rede fora) não pode virar
+// "exclusão só local": o registro voltaria na próxima leitura. As ids ficam
+// numa fila e são reenviadas assim que houver sessão.
+const PENDING_DELETES_KEY = 'sigef_pending_deletes_v1';
+
+type PendingDelete = { table: string; id: string };
+
+function readPendingDeletes(): PendingDelete[] {
+  try {
+    const raw = localStorage.getItem(PENDING_DELETES_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePendingDeletes(list: PendingDelete[]): void {
+  try {
+    if (list.length === 0) localStorage.removeItem(PENDING_DELETES_KEY);
+    else localStorage.setItem(PENDING_DELETES_KEY, JSON.stringify(list));
+  } catch {
+    // sem storage: nada a recuperar depois
+  }
+}
+
+function enqueueDeletions(table: string, ids: string[]): void {
+  const pending = readPendingDeletes();
+  ids.forEach((id) => {
+    if (!pending.some((p) => p.table === table && p.id === id)) {
+      pending.push({ table, id });
+    }
+  });
+  writePendingDeletes(pending);
+}
+
+async function flushPendingDeletions(): Promise<void> {
+  const token = getSessionToken();
+  if (!token) return;
+
+  const pending = readPendingDeletes();
+  if (pending.length === 0) return;
+
+  const byTable = new Map<string, string[]>();
+  pending.forEach((p) => {
+    byTable.set(p.table, [...(byTable.get(p.table) || []), p.id]);
+  });
+
+  const remaining: PendingDelete[] = [];
+  for (const [table, ids] of byTable) {
+    try {
+      const { data, error } = await supabase.rpc('sigef_delete_rows', {
+        p_token: token,
+        p_table: table,
+        p_ids: ids,
+      });
+      if (error || data?.success === false) {
+        console.warn(
+          `Exclusões pendentes de ${table} não enviadas:`,
+          error?.message || data?.message || 'falha na sincronização'
+        );
+        ids.forEach((id) => remaining.push({ table, id }));
+      }
+    } catch {
+      ids.forEach((id) => remaining.push({ table, id }));
+    }
+  }
+  writePendingDeletes(remaining);
 }
 
 async function safeSupabaseDeleteAll(table: string) {
@@ -196,6 +330,8 @@ const SESSION_KEYS = new Set<string>([
 
 // Cache permitido no localStorage: só dado operacional não sensível.
 const PERSISTED_KEYS = new Set<string>([
+  STORAGE_KEYS.SESSION_TOKEN,
+  'sigef_pending_deletes_v1',
   STORAGE_KEYS.SPACES,
   STORAGE_KEYS.MATERIALS,
   STORAGE_KEYS.KITS,
@@ -410,7 +546,7 @@ export const sigefStorage = {
     message?: string;
     users?: UserProfile[];
   }> {
-    const token = sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+    const token = getSessionToken();
     if (!token) {
       return { success: false, message: 'Sessão expirada. Entre novamente para ver os usuários.' };
     }
@@ -450,7 +586,7 @@ export const sigefStorage = {
     message?: string;
     requesters?: Requester[];
   }> {
-    const token = sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+    const token = getSessionToken();
     if (!token) {
       return { success: false, message: 'Sessão expirada. Entre novamente para ver os usuários.' };
     }
@@ -487,18 +623,22 @@ export const sigefStorage = {
       };
     }
 
-    // Única verificação de credenciais: a RPC sigef_login compara a senha com o
-    // hash (bcrypt) dentro do banco e devolve o perfil. O navegador não lê a
-    // lista de usuários, não compara senha e não tem caminho alternativo.
+    // A senha é verificada pelo Supabase Auth (auth.users). Se o Auth estiver
+    // indisponível, a RPC sigef_login_session ainda confere o mesmo hash bcrypt
+    // guardado em app_users — nenhuma senha chega ao navegador em nenhum caso.
     try {
-      const { data, error } = await supabase.rpc('sigef_login_session', {
-        p_identifier: cleanId,
-        p_password: password,
-      });
+      let data = await signInWithSupabaseAuth(cleanId, password);
 
-      if (error) {
-        console.error('Falha ao chamar sigef_login_session:', error.message);
-        return { success: false, message: AUTH_UNAVAILABLE };
+      if (!data) {
+        const legacy = await supabase.rpc('sigef_login_session', {
+          p_identifier: cleanId,
+          p_password: password,
+        });
+        if (legacy.error) {
+          console.error('Falha ao chamar sigef_login_session:', legacy.error.message);
+        } else if (legacy.data?.success && legacy.data.user) {
+          data = legacy.data;
+        }
       }
 
       if (!data?.success || !data.user) {
@@ -532,7 +672,7 @@ export const sigefStorage = {
       this.setAuthUser(cloudUser);
       // Token opaco da sessão: autoriza a listagem de contas no servidor.
       if (data.session_token) {
-        sessionStorage.setItem(STORAGE_KEYS.SESSION_TOKEN, data.session_token);
+        setSessionToken(data.session_token);
       }
       // Dados pessoais (solicitantes, empréstimos, reservas, usuários) são
       // buscados sob demanda: sem sessão válida a RLS devolve vazio/erro e
@@ -626,12 +766,9 @@ export const sigefStorage = {
       // Só o cadastro próprio abre sessão: a conta recém-criada passa a
       // sincronizar dados com o Supabase sem afetar quem já está logado.
       if (isSelfSignup) {
-        const { data: sessionData } = await supabase.rpc('sigef_login_session', {
-          p_identifier: cleanEmail,
-          p_password: data.password,
-        });
-        if (sessionData?.session_token) {
-          sessionStorage.setItem(STORAGE_KEYS.SESSION_TOKEN, sessionData.session_token);
+        const session = await signInWithSupabaseAuth(cleanEmail, data.password);
+        if (session?.session_token) {
+          setSessionToken(session.session_token);
         }
       }
     } catch (err) {
@@ -687,7 +824,8 @@ export const sigefStorage = {
   },
 
   logout(): void {
-    const token = sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+    void supabase.auth.signOut().catch(() => {});
+    const token = getSessionToken();
     if (token) {
       // Revoga a sessão no servidor sem atrasar a saída da interface.
       void supabase.rpc('sigef_logout', { p_token: token }).then(
@@ -1400,6 +1538,10 @@ export const sigefStorage = {
     try {
       let count = 0;
       const token = getSessionToken();
+
+      // Exclusões feitas sem sessão válida são reenviadas primeiro: assim a
+      // nuvem não devolve um registro que o usuário já removeu.
+      await flushPendingDeletions();
 
       // O Supabase é a fonte da verdade: cada lista é substituída mesmo quando
       // o banco está vazio, para que uma exclusão feita na nuvem desapareça do
