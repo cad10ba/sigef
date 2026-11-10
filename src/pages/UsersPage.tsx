@@ -202,12 +202,19 @@ export const UsersPage: React.FC<UsersPageProps> = ({
     setIsModalOpen(false);
   };
 
-  const handleDeleteUser = (id: string, name: string) => {
-    if (confirm(`Deseja remover o cadastro de "${name}"?`)) {
-      sigefStorage.deleteRequester(id);
-      showToast(`Usuário "${name}" removido.`, 'info');
-      if (selectedUserDetail?.id === id) setSelectedUserDetail(null);
+  const handleDeleteUser = async (id: string, name: string) => {
+    if (!confirm(`Deseja remover o cadastro de "${name}"?`)) return;
+
+    const res = await sigefStorage.deleteRequester(id);
+    if (!res.success) {
+      showToast(res.message || `Não foi possível remover "${name}".`, 'error');
+      return;
     }
+
+    showToast(`Usuário "${name}" removido.`, 'info');
+    if (selectedUserDetail?.id === id) setSelectedUserDetail(null);
+    // Recarrega para refletir a exclusão também nas Contas do Sistema.
+    await loadSystemUsers();
   };
 
   // Get user history for modal

@@ -1011,10 +1011,39 @@ export const sigefStorage = {
     safeSupabaseUpsert('requesters', requesterToRow(req));
   },
 
-  deleteRequester(requesterId: string): void {
+  // Exclui o cadastro e, quando ele pertence a uma conta do sistema (docente,
+  // monitor, admin), apaga também a conta no Supabase. A decisão é do
+  // servidor (sigef_delete_person), que exige sessão de administrador.
+  async deleteRequester(
+    requesterId: string
+  ): Promise<{ success: boolean; message?: string }> {
+    const token = getSessionToken();
+
+    if (token) {
+      try {
+        const { data, error } = await supabase.rpc('sigef_delete_person', {
+          p_token: token,
+          p_requester_id: requesterId,
+        });
+        if (error) {
+          console.warn('Supabase delete person note:', error.message);
+        }
+        if (data?.success === false) {
+          return {
+            success: false,
+            message: data.message || 'Não foi possível excluir o cadastro.',
+          };
+        }
+      } catch {
+        // Sem sincronização agora: a remoção local abaixo continua valendo.
+      }
+    } else {
+      void safeSupabaseDelete('requesters', requesterId);
+    }
+
     const list = this.getRequesters().filter((r) => r.id !== requesterId);
     setStoredItem(STORAGE_KEYS.REQUESTERS, list);
-    safeSupabaseDelete('requesters', requesterId);
+    return { success: true };
   },
 
   findRequester(query: string): Requester | undefined {
