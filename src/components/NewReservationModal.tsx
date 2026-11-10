@@ -28,18 +28,16 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
   );
   const kits = sigefStorage.getKits();
 
-  const todayStr = new Date().toISOString().split('T')[0];
-
-  const [spaceId, setSpaceId] = useState(preselectedSpaceId || (spaces[0]?.id || ''));
-  const [date, setDate] = useState(preselectedDate || todayStr);
-  const [startTime, setStartTime] = useState(preselectedTime || '07:30');
-  const [endTime, setEndTime] = useState('09:10');
-  const [useType, setUseType] = useState<UseType>('aula');
-  const [sport, setSport] = useState('Voleibol');
+  const [spaceId, setSpaceId] = useState(preselectedSpaceId || '');
+  const [date, setDate] = useState(preselectedDate || '');
+  const [startTime, setStartTime] = useState(preselectedTime || '');
+  const [endTime, setEndTime] = useState('');
+  const [useType, setUseType] = useState<UseType | ''>('');
+  const [sport, setSport] = useState('');
   const [groupOrClass, setGroupOrClass] = useState('');
-  const [teacherId, setTeacherId] = useState(requesters[0]?.id || '');
+  const [teacherId, setTeacherId] = useState('');
   const [customTeacherName, setCustomTeacherName] = useState('');
-  const [participantsCount, setParticipantsCount] = useState(30);
+  const [participantsCount, setParticipantsCount] = useState<number | ''>('');
   const [selectedKitId, setSelectedKitId] = useState('');
   const [recurrence, setRecurrence] = useState<'none' | 'weekly'>('none');
   const [recurrenceUntil, setRecurrenceUntil] = useState('');
@@ -50,16 +48,16 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
 
   // Estado inicial vazio: nada da última reserva permanece no formulário.
   const resetForm = () => {
-    setSpaceId(preselectedSpaceId || spaces[0]?.id || '');
-    setDate(preselectedDate || todayStr);
-    setStartTime(preselectedTime || '07:30');
-    setEndTime('09:10');
-    setUseType('aula');
-    setSport('Voleibol');
+    setSpaceId(preselectedSpaceId || '');
+    setDate(preselectedDate || '');
+    setStartTime(preselectedTime || '');
+    setEndTime('');
+    setUseType('');
+    setSport('');
     setGroupOrClass('');
-    setTeacherId(requesters[0]?.id || '');
+    setTeacherId('');
     setCustomTeacherName('');
-    setParticipantsCount(30);
+    setParticipantsCount('');
     setSelectedKitId('');
     setRecurrence('none');
     setRecurrenceUntil('');
@@ -120,6 +118,21 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
       return;
     }
 
+    if (!date) {
+      showToast('Selecione a data do agendamento.', 'error');
+      return;
+    }
+
+    if (!startTime || !endTime) {
+      showToast('Informe o horário de início e término.', 'error');
+      return;
+    }
+
+    if (!useType) {
+      showToast('Selecione o tipo de uso.', 'error');
+      return;
+    }
+
     if (!groupOrClass.trim()) {
       showToast('Por favor, informe a turma ou grupo responsável.', 'error');
       return;
@@ -164,12 +177,12 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
       date,
       startTime,
       endTime,
-      useType,
+      useType: useType as UseType,
       sport: sport || 'Geral',
       groupOrClass: groupOrClass.trim(),
       teacherId: currentTeacher?.id || 'doc-custom',
       teacherName: teacherNameResolved,
-      participantsCount: Number(participantsCount) || 20,
+      participantsCount: Number(participantsCount) || 0,
       kitIds: selectedKitId ? [selectedKitId] : [],
       materialAllocations,
       recurrence,
@@ -231,7 +244,9 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
                   value={spaceId}
                   onChange={(e) => setSpaceId(e.target.value)}
                   className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-emerald-500"
+                  required
                 >
+                  <option value="">Selecione o espaço esportivo</option>
                   {spaces.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name} (Cap. {s.capacity})
@@ -294,7 +309,9 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
                 value={useType}
                 onChange={(e) => setUseType(e.target.value as UseType)}
                 className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-emerald-500"
+                required
               >
+                <option value="">Selecione o tipo</option>
                 <option value="aula">Aula Curricular</option>
                 <option value="treino">Treino / Seleção</option>
                 <option value="extensao">Extensão / Projeto</option>
@@ -343,7 +360,9 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
                   value={teacherId}
                   onChange={(e) => setTeacherId(e.target.value)}
                   className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-emerald-500"
+                  required
                 >
+                  <option value="">Selecione o docente/responsável</option>
                   {requesters.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.name} ({r.type === 'docente' ? 'Docente' : r.type === 'estagiario' ? 'Estagiário' : r.type === 'monitor' ? 'Monitor' : 'Servidor'} - {r.registration})
@@ -376,7 +395,10 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
                   min="1"
                   max="500"
                   value={participantsCount}
-                  onChange={(e) => setParticipantsCount(Number(e.target.value))}
+                  onChange={(e) =>
+                    setParticipantsCount(e.target.value === '' ? '' : Number(e.target.value))
+                  }
+                  placeholder="Ex: 30"
                   className="w-full h-10 pl-9 pr-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-emerald-500"
                 />
               </div>

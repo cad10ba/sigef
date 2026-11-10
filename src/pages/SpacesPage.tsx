@@ -92,17 +92,17 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
   const [editingSpace, setEditingSpace] = useState<Space | null>(null);
   const [spaceForm, setSpaceForm] = useState<{
     name: string;
-    type: SpaceType;
-    capacity: number;
+    type: SpaceType | '';
+    capacity: number | '';
     openHours: string;
     allowedSports: string;
     notes: string;
   }>({
     name: '',
-    type: 'quadra',
-    capacity: 50,
-    openHours: '07:00 às 22:00',
-    allowedSports: 'Futsal, Vôlei',
+    type: '',
+    capacity: '',
+    openHours: '',
+    allowedSports: '',
     notes: '',
   });
 
@@ -156,10 +156,10 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
     setEditingSpace(null);
     setSpaceForm({
       name: '',
-      type: 'quadra',
-      capacity: 50,
-      openHours: '07:00 às 22:00',
-      allowedSports: 'Futsal, Vôlei',
+      type: '',
+      capacity: '',
+      openHours: '',
+      allowedSports: '',
       notes: '',
     });
     setIsSpaceModalOpen(true);
@@ -185,12 +185,22 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
       return;
     }
 
+    if (!spaceForm.type) {
+      showToast('Selecione o tipo de espaço.', 'error');
+      return;
+    }
+
+    if (!spaceForm.capacity || Number(spaceForm.capacity) < 1) {
+      showToast('Informe a capacidade do espaço.', 'error');
+      return;
+    }
+
     const space: Space = {
       id: editingSpace ? editingSpace.id : 'espaco-' + Date.now(),
       name: spaceForm.name.trim(),
-      type: spaceForm.type,
-      capacity: Number(spaceForm.capacity) || 40,
-      openHours: spaceForm.openHours.trim() || '07:00 às 22:00',
+      type: spaceForm.type as SpaceType,
+      capacity: Number(spaceForm.capacity),
+      openHours: spaceForm.openHours.trim(),
       allowedSports: spaceForm.allowedSports
         .split(',')
         .map((s) => s.trim())
@@ -712,7 +722,9 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                     value={spaceForm.type}
                     onChange={(e) => setSpaceForm({ ...spaceForm, type: e.target.value as SpaceType })}
                     className="w-full h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none"
+                    required
                   >
+                    <option value="">Selecione o tipo</option>
                     <option value="quadra">Quadra Poliesportiva</option>
                     <option value="campo">Campo Society / Futebol</option>
                     <option value="areia">Quadra de Areia</option>
@@ -726,8 +738,15 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                   <label className="block font-semibold text-slate-300 mb-1">Capacidade (Pessoas)</label>
                   <input
                     type="number"
+                    min="1"
                     value={spaceForm.capacity}
-                    onChange={(e) => setSpaceForm({ ...spaceForm, capacity: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setSpaceForm({
+                        ...spaceForm,
+                        capacity: e.target.value === '' ? '' : Number(e.target.value),
+                      })
+                    }
+                    placeholder="Ex: 50"
                     className="w-full h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none"
                     required
                   />

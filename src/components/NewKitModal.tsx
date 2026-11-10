@@ -15,7 +15,7 @@ interface NewKitModalProps {
 const EMPTY_KIT_FORM = {
   name: '',
   description: '',
-  category: 'volei' as MaterialCategory,
+  category: '' as MaterialCategory | '',
   items: [] as SportKitItem[],
 };
 
@@ -30,7 +30,7 @@ export const NewKitModal: React.FC<NewKitModalProps> = ({
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<MaterialCategory>('volei');
+  const [category, setCategory] = useState<MaterialCategory | ''>('');
   const [items, setItems] = useState<SportKitItem[]>([]);
 
   // Dynamic Category
@@ -120,6 +120,11 @@ export const NewKitModal: React.FC<NewKitModalProps> = ({
       return;
     }
 
+    if (!category) {
+      showToast('Selecione a modalidade do kit.', 'error');
+      return;
+    }
+
     if (items.length === 0) {
       showToast('Adicione pelo menos um material ao kit.', 'error');
       return;
@@ -129,7 +134,7 @@ export const NewKitModal: React.FC<NewKitModalProps> = ({
       id: kitToEdit ? kitToEdit.id : 'kit-' + Date.now(),
       name: name.trim(),
       description: description.trim(),
-      category,
+      category: category as MaterialCategory,
       items,
       status: isReady ? 'pronto' : 'incompleto',
     };
@@ -243,7 +248,9 @@ export const NewKitModal: React.FC<NewKitModalProps> = ({
                     }
                   }}
                   className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-purple-500 text-xs"
+                  required
                 >
+                  <option value="">Selecione a modalidade</option>
                   <optgroup label="Modalidades Disponíveis">
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>

@@ -46,8 +46,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regRegistration, setRegRegistration] = useState('');
-  const [regDepartment, setRegDepartment] = useState('Coordenação de Educação Física (COEF)');
-  const [regPhone, setRegPhone] = useState('(73) 9');
+  const [regDepartment, setRegDepartment] = useState('');
+  const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
@@ -111,9 +111,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       setRegName('');
       setRegEmail('');
       setRegRegistration('');
+      setRegDepartment('');
       setRegPassword('');
       setRegConfirmPassword('');
-      setRegPhone('(73) 9');
+      setRegPhone('');
       onLoginSuccess(res.user);
     } else {
       showToast(res.message, 'error');

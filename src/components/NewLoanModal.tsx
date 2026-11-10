@@ -24,17 +24,12 @@ interface NewLoanModalProps {
   initialRequesterId?: string;
 }
 
-const getDefaultReturnDeadline = () => {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 18, 0).toISOString().slice(0, 16);
-};
-
 // Estado inicial vazio do empréstimo: nenhum item ou solicitante do último registro é mantido.
 const EMPTY_LOAN_FORM = {
   searchReg: '',
   selectedRequester: null,
   supervisorTeacherId: '',
-  purpose: 'Aula Prática / Atividade Curricular',
+  purpose: '',
   loanItems: [] as { materialId: string; quantity: number }[],
   selectedKitId: '',
   acceptedTerms: false,
@@ -55,14 +50,14 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
   const [searchReg, setSearchReg] = useState('');
   const [selectedRequester, setSelectedRequester] = useState<Requester | null>(null);
   const [supervisorTeacherId, setSupervisorTeacherId] = useState('');
-  const [purpose, setPurpose] = useState('Aula Prática / Atividade Curricular');
+  const [purpose, setPurpose] = useState('');
 
   // Items
   const [loanItems, setLoanItems] = useState<{ materialId: string; quantity: number }[]>([]);
   const [selectedKitId, setSelectedKitId] = useState('');
 
   // Return deadline
-  const [returnDeadline, setReturnDeadline] = useState(getDefaultReturnDeadline);
+  const [returnDeadline, setReturnDeadline] = useState('');
 
   // Term acceptance
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -74,7 +69,7 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
     setPurpose(EMPTY_LOAN_FORM.purpose);
     setLoanItems([...EMPTY_LOAN_FORM.loanItems]);
     setSelectedKitId(EMPTY_LOAN_FORM.selectedKitId);
-    setReturnDeadline(getDefaultReturnDeadline());
+    setReturnDeadline('');
     setAcceptedTerms(EMPTY_LOAN_FORM.acceptedTerms);
   };
 
@@ -156,6 +151,16 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
 
     if (loanItems.length === 0) {
       showToast('Adicione pelo menos um material ou kit esportivo.', 'error');
+      return;
+    }
+
+    if (!returnDeadline) {
+      showToast('Informe o prazo de devolução.', 'error');
+      return;
+    }
+
+    if (!purpose.trim()) {
+      showToast('Informe a finalidade do empréstimo.', 'error');
       return;
     }
 

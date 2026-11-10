@@ -11,20 +11,18 @@ interface NewMaterialModalProps {
   materialToEdit?: Material | null;
 }
 
-// Estado inicial de um cadastro novo: nenhum dado do último item editado é reaproveitado.
+// Estado inicial de um cadastro novo: todos os campos abrem em branco.
 const EMPTY_MATERIAL_FORM = {
   patrimonyNumber: '',
   name: '',
   technicalDescription: '',
-  category: 'futsal' as MaterialCategory,
-  totalQuantity: 12,
-  availableQuantity: 12,
-  conservationState: 'novo' as ConservationState,
-  storageLocation: 'Almoxarifado Central - Prateleira 1',
-  minStockAlert: 4,
+  category: '' as MaterialCategory | '',
+  totalQuantity: '' as number | '',
+  availableQuantity: '' as number | '',
+  conservationState: '' as ConservationState | '',
+  storageLocation: '',
+  minStockAlert: '' as number | '',
 };
-
-const generatePatrimonyNumber = () => `PAT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
 export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
   isOpen,
@@ -37,12 +35,12 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
   const [patrimonyNumber, setPatrimonyNumber] = useState('');
   const [name, setName] = useState('');
   const [technicalDescription, setTechnicalDescription] = useState('');
-  const [category, setCategory] = useState<MaterialCategory>('volei');
-  const [totalQuantity, setTotalQuantity] = useState(10);
-  const [availableQuantity, setAvailableQuantity] = useState(10);
-  const [conservationState, setConservationState] = useState<ConservationState>('bom');
-  const [storageLocation, setStorageLocation] = useState('Armário A1 - Prateleira 1');
-  const [minStockAlert, setMinStockAlert] = useState(4);
+  const [category, setCategory] = useState<MaterialCategory | ''>('');
+  const [totalQuantity, setTotalQuantity] = useState<number | ''>('');
+  const [availableQuantity, setAvailableQuantity] = useState<number | ''>('');
+  const [conservationState, setConservationState] = useState<ConservationState | ''>('');
+  const [storageLocation, setStorageLocation] = useState('');
+  const [minStockAlert, setMinStockAlert] = useState<number | ''>('');
 
   // Custom Category creation
   const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -63,7 +61,7 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
           storageLocation: material.storageLocation,
           minStockAlert: material.minStockAlert,
         }
-      : { ...EMPTY_MATERIAL_FORM, patrimonyNumber: generatePatrimonyNumber() };
+      : { ...EMPTY_MATERIAL_FORM };
 
     setPatrimonyNumber(values.patrimonyNumber);
     setName(values.name);
@@ -109,6 +107,21 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
       return;
     }
 
+    if (!category) {
+      showToast('Selecione a categoria/modalidade do material.', 'error');
+      return;
+    }
+
+    if (!conservationState) {
+      showToast('Selecione o estado de conservação.', 'error');
+      return;
+    }
+
+    if (!totalQuantity || Number(totalQuantity) < 1) {
+      showToast('Informe a quantidade total do material.', 'error');
+      return;
+    }
+
     const currentUser = sigefStorage.getCurrentUser();
 
     const newMat: Material = {
@@ -116,12 +129,15 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
       patrimonyNumber: patrimonyNumber.trim(),
       name: name.trim(),
       technicalDescription: technicalDescription.trim(),
-      category,
+      category: category as MaterialCategory,
       totalQuantity: Number(totalQuantity),
-      availableQuantity: Math.min(Number(availableQuantity), Number(totalQuantity)),
-      conservationState,
+      availableQuantity: Math.min(
+        availableQuantity === '' ? Number(totalQuantity) : Number(availableQuantity),
+        Number(totalQuantity)
+      ),
+      conservationState: conservationState as ConservationState,
       storageLocation: storageLocation.trim(),
-      minStockAlert: Number(minStockAlert),
+      minStockAlert: Number(minStockAlert) || 0,
       history: materialToEdit
         ? materialToEdit.history
         : [
@@ -287,6 +303,7 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
                   }}
                   className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-amber-500 text-xs"
                 >
+                  <option value="">Selecione a modalidade</option>
                   <optgroup label="Modalidades Disponíveis">
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>
@@ -309,7 +326,9 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
                 value={conservationState}
                 onChange={(e) => setConservationState(e.target.value as ConservationState)}
                 className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-amber-500"
+                required
               >
+                <option value="">Selecione o estado</option>
                 <option value="novo">Novo (Sem uso / Perfeito)</option>
                 <option value="bom">Bom (Uso regular excelente)</option>
                 <option value="regular">Regular (Desgaste natural)</option>
@@ -329,7 +348,8 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
                 type="number"
                 min="1"
                 value={totalQuantity}
-                onChange={(e) => setTotalQuantity(Number(e.target.value))}
+                onChange={(e) => setTotalQuantity(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="0"
                 className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 text-center font-bold text-sm font-mono focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -342,7 +362,10 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
                 min="0"
                 max={totalQuantity}
                 value={availableQuantity}
-                onChange={(e) => setAvailableQuantity(Number(e.target.value))}
+                onChange={(e) =>
+                  setAvailableQuantity(e.target.value === '' ? '' : Number(e.target.value))
+                }
+                placeholder="0"
                 className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 text-center font-bold text-sm font-mono focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -354,7 +377,8 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
                 type="number"
                 min="0"
                 value={minStockAlert}
-                onChange={(e) => setMinStockAlert(Number(e.target.value))}
+                onChange={(e) => setMinStockAlert(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="0"
                 className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 text-center font-bold text-sm font-mono focus:outline-none focus:border-amber-500"
               />
             </div>
