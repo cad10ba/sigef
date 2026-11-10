@@ -10,6 +10,17 @@ interface NewSystemUserModalProps {
   onUserCreated?: () => void;
 }
 
+const EMPTY_USER_FORM = {
+  name: '',
+  email: '',
+  registration: '',
+  role: 'docente' as UserRole,
+  department: 'Coordenação de Educação Física (COEF)',
+  phone: '(73) 9',
+  password: '',
+  showPassword: false,
+};
+
 export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
   isOpen,
   onClose,
@@ -28,14 +39,14 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const resetForm = () => {
-    setName('');
-    setEmail('');
-    setRegistration('');
-    setRole('docente');
-    setDepartment('Coordenação de Educação Física (COEF)');
-    setPhone('(73) 9');
-    setPassword('');
-    setShowPassword(false);
+    setName(EMPTY_USER_FORM.name);
+    setEmail(EMPTY_USER_FORM.email);
+    setRegistration(EMPTY_USER_FORM.registration);
+    setRole(EMPTY_USER_FORM.role);
+    setDepartment(EMPTY_USER_FORM.department);
+    setPhone(EMPTY_USER_FORM.phone);
+    setPassword(EMPTY_USER_FORM.password);
+    setShowPassword(EMPTY_USER_FORM.showPassword);
   };
 
   React.useEffect(() => {

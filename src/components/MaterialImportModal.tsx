@@ -86,6 +86,18 @@ export const MaterialImportModal: React.FC<MaterialImportModalProps> = ({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const resetForm = () => {
+    handleResetFile();
+    setIsParsing(false);
+    setImportMode('add');
+    setActiveTab('upload');
+  };
+
+  const handleCancelar = () => {
+    resetForm();
+    onClose();
+  };
+
   const handleConfirmImport = () => {
     if (parsedMaterials.length === 0) {
       showToast('Selecione uma planilha válida com materiais para importar.', 'error');
@@ -93,7 +105,7 @@ export const MaterialImportModal: React.FC<MaterialImportModalProps> = ({
     }
 
     onImportComplete(parsedMaterials, importMode);
-    handleResetFile();
+    resetForm();
     onClose();
   };
 
@@ -121,7 +133,7 @@ export const MaterialImportModal: React.FC<MaterialImportModalProps> = ({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleCancelar}
             className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -453,7 +465,7 @@ export const MaterialImportModal: React.FC<MaterialImportModalProps> = ({
         <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-end gap-2.5">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleCancelar}
             className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
           >
             Cancelar

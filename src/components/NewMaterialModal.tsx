@@ -11,6 +11,21 @@ interface NewMaterialModalProps {
   materialToEdit?: Material | null;
 }
 
+// Estado inicial de um cadastro novo: nenhum dado do último item editado é reaproveitado.
+const EMPTY_MATERIAL_FORM = {
+  patrimonyNumber: '',
+  name: '',
+  technicalDescription: '',
+  category: 'futsal' as MaterialCategory,
+  totalQuantity: 12,
+  availableQuantity: 12,
+  conservationState: 'novo' as ConservationState,
+  storageLocation: 'Almoxarifado Central - Prateleira 1',
+  minStockAlert: 4,
+};
+
+const generatePatrimonyNumber = () => `PAT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+
 export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
   isOpen,
   onClose,
@@ -34,31 +49,45 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
   const [newCategoryName, setNewCategoryName] = useState('');
   const categories = sigefStorage.getCategories();
 
+  // Modo "editar" recebe o item selecionado; modo "novo" sempre parte do estado vazio.
+  const resetForm = (material?: Material | null) => {
+    const values = material
+      ? {
+          patrimonyNumber: material.patrimonyNumber,
+          name: material.name,
+          technicalDescription: material.technicalDescription,
+          category: material.category,
+          totalQuantity: material.totalQuantity,
+          availableQuantity: material.availableQuantity,
+          conservationState: material.conservationState,
+          storageLocation: material.storageLocation,
+          minStockAlert: material.minStockAlert,
+        }
+      : { ...EMPTY_MATERIAL_FORM, patrimonyNumber: generatePatrimonyNumber() };
+
+    setPatrimonyNumber(values.patrimonyNumber);
+    setName(values.name);
+    setTechnicalDescription(values.technicalDescription);
+    setCategory(values.category);
+    setTotalQuantity(values.totalQuantity);
+    setAvailableQuantity(values.availableQuantity);
+    setConservationState(values.conservationState);
+    setStorageLocation(values.storageLocation);
+    setMinStockAlert(values.minStockAlert);
+    setIsAddingCategory(false);
+    setNewCategoryName('');
+  };
+
   useEffect(() => {
-    if (materialToEdit) {
-      setPatrimonyNumber(materialToEdit.patrimonyNumber);
-      setName(materialToEdit.name);
-      setTechnicalDescription(materialToEdit.technicalDescription);
-      setCategory(materialToEdit.category);
-      setTotalQuantity(materialToEdit.totalQuantity);
-      setAvailableQuantity(materialToEdit.availableQuantity);
-      setConservationState(materialToEdit.conservationState);
-      setStorageLocation(materialToEdit.storageLocation);
-      setMinStockAlert(materialToEdit.minStockAlert);
-    } else {
-      setPatrimonyNumber(`PAT-2026-${Math.floor(1000 + Math.random() * 9000)}`);
-      setName('');
-      setTechnicalDescription('');
-      setCategory('futsal');
-      setTotalQuantity(12);
-      setAvailableQuantity(12);
-      setConservationState('novo');
-      setStorageLocation('Almoxarifado Central - Prateleira 1');
-      setMinStockAlert(4);
-    }
+    if (isOpen) resetForm(materialToEdit);
   }, [materialToEdit, isOpen]);
 
   if (!isOpen) return null;
+
+  const handleCancelar = () => {
+    resetForm(null);
+    onClose();
+  };
 
   const handleCreateCategory = () => {
     if (!newCategoryName.trim()) {
@@ -112,6 +141,7 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
       materialToEdit ? 'Material atualizado com sucesso!' : 'Novo material cadastrado no acervo!',
       'success'
     );
+    resetForm(null);
     onSaved();
     onClose();
   };
@@ -130,7 +160,7 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleCancelar}
             className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -348,7 +378,7 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
           <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCancelar}
               className="px-4 py-2 text-xs sm:text-sm text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
             >
               Cancelar

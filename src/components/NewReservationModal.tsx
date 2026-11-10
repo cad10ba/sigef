@@ -48,11 +48,28 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
   // Conflict warning
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
 
+  // Estado inicial vazio: nada da última reserva permanece no formulário.
+  const resetForm = () => {
+    setSpaceId(preselectedSpaceId || spaces[0]?.id || '');
+    setDate(preselectedDate || todayStr);
+    setStartTime(preselectedTime || '07:30');
+    setEndTime('09:10');
+    setUseType('aula');
+    setSport('Voleibol');
+    setGroupOrClass('');
+    setTeacherId(requesters[0]?.id || '');
+    setCustomTeacherName('');
+    setParticipantsCount(30);
+    setSelectedKitId('');
+    setRecurrence('none');
+    setRecurrenceUntil('');
+    setNotes('');
+    setConflictWarning(null);
+  };
+
   useEffect(() => {
-    if (preselectedSpaceId) setSpaceId(preselectedSpaceId);
-    if (preselectedDate) setDate(preselectedDate);
-    if (preselectedTime) setStartTime(preselectedTime);
-  }, [preselectedSpaceId, preselectedDate, preselectedTime]);
+    if (isOpen) resetForm();
+  }, [isOpen, preselectedSpaceId, preselectedDate, preselectedTime]);
 
   // Live conflict evaluation
   useEffect(() => {
@@ -81,6 +98,11 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
   }, [spaceId, date, startTime, endTime, spaces]);
 
   if (!isOpen) return null;
+
+  const handleCancelar = () => {
+    resetForm();
+    onClose();
+  };
 
   const currentSpace = spaces.find((s) => s.id === spaceId);
   const currentTeacher = requesters.find((r) => r.id === teacherId);
@@ -163,6 +185,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
     }
 
     showToast('Reserva de espaço agendada com sucesso!', 'success');
+    resetForm();
     onSaved();
     onClose();
   };
@@ -181,7 +204,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleCancelar}
             className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -442,7 +465,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
           <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCancelar}
               className="px-4 py-2 text-xs sm:text-sm text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
             >
               Cancelar

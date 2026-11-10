@@ -81,6 +81,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     showToast('Aviso removido do mural.', 'info');
   };
 
+  // Estado inicial vazio do aviso: nada do comunicado anterior é reaproveitado.
+  const resetNoticeForm = () => {
+    setNewNoticeTitle('');
+    setNewNoticeContent('');
+    setNewNoticePriority('normal');
+  };
+
+  const handleOpenNewNotice = () => {
+    resetNoticeForm();
+    setIsNewNoticeOpen(true);
+  };
+
+  const handleCancelarNotice = () => {
+    resetNoticeForm();
+    setIsNewNoticeOpen(false);
+  };
+
   const handleCreateNotice = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNoticeTitle.trim() || !newNoticeContent.trim()) {
@@ -105,8 +122,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
     sigefStorage.saveNotice(item);
     showToast('Novo comunicado publicado no Mural da COEF!', 'success');
-    setNewNoticeTitle('');
-    setNewNoticeContent('');
+    resetNoticeForm();
     setIsNewNoticeOpen(false);
   };
 
@@ -465,7 +481,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
 
           <button
-            onClick={() => setIsNewNoticeOpen(true)}
+            onClick={handleOpenNewNotice}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold rounded-xl transition-colors self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" />
@@ -591,7 +607,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               <div className="pt-3 border-t border-white/10 flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsNewNoticeOpen(false)}
+                  onClick={handleCancelarNotice}
                   className="px-3 py-2 text-slate-400 hover:text-white rounded-xl"
                 >
                   Cancelar

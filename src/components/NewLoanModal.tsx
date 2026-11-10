@@ -24,6 +24,22 @@ interface NewLoanModalProps {
   initialRequesterId?: string;
 }
 
+const getDefaultReturnDeadline = () => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 18, 0).toISOString().slice(0, 16);
+};
+
+// Estado inicial vazio do empréstimo: nenhum item ou solicitante do último registro é mantido.
+const EMPTY_LOAN_FORM = {
+  searchReg: '',
+  selectedRequester: null,
+  supervisorTeacherId: '',
+  purpose: 'Aula Prática / Atividade Curricular',
+  loanItems: [] as { materialId: string; quantity: number }[],
+  selectedKitId: '',
+  acceptedTerms: false,
+};
+
 export const NewLoanModal: React.FC<NewLoanModalProps> = ({
   isOpen,
   onClose,
@@ -46,14 +62,25 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
   const [selectedKitId, setSelectedKitId] = useState('');
 
   // Return deadline
-  const now = new Date();
-  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 18, 0).toISOString().slice(0, 16);
-  const [returnDeadline, setReturnDeadline] = useState(todayEnd);
+  const [returnDeadline, setReturnDeadline] = useState(getDefaultReturnDeadline);
 
   // Term acceptance
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
+  const resetForm = () => {
+    setSearchReg(EMPTY_LOAN_FORM.searchReg);
+    setSelectedRequester(EMPTY_LOAN_FORM.selectedRequester);
+    setSupervisorTeacherId(EMPTY_LOAN_FORM.supervisorTeacherId);
+    setPurpose(EMPTY_LOAN_FORM.purpose);
+    setLoanItems([...EMPTY_LOAN_FORM.loanItems]);
+    setSelectedKitId(EMPTY_LOAN_FORM.selectedKitId);
+    setReturnDeadline(getDefaultReturnDeadline());
+    setAcceptedTerms(EMPTY_LOAN_FORM.acceptedTerms);
+  };
+
   useEffect(() => {
+    if (!isOpen) return;
+    resetForm();
     if (initialRequesterId) {
       const found = requesters.find((r) => r.id === initialRequesterId);
       if (found) {
@@ -61,9 +88,14 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
         setSearchReg(found.registration);
       }
     }
-  }, [initialRequesterId, requesters]);
+  }, [isOpen, initialRequesterId]);
 
   if (!isOpen) return null;
+
+  const handleCancelar = () => {
+    resetForm();
+    onClose();
+  };
 
   // Search by registration or name
   const handleSearchRequester = (query: string) => {
@@ -183,6 +215,7 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
     }
 
     showToast(`Empréstimo ${newTermNumber} registrado com sucesso!`, 'success');
+    resetForm();
     onLoanCreated(newLoan);
   };
 
@@ -202,7 +235,7 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleCancelar}
             className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -486,7 +519,7 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleCancelar}
                 className="px-4 py-2 text-xs sm:text-sm text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
               >
                 Cancelar
