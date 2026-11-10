@@ -48,6 +48,9 @@ export const UsersPage: React.FC<UsersPageProps> = ({
     if (userRole !== 'admin') return;
     setSystemUsersLoading(true);
     setSystemUsersError('');
+    // Recarrega também os solicitantes (docentes, monitores, alunos): o
+    // Supabase pode ter recebido cadastros fora do aplicativo.
+    await sigefStorage.listRequesters();
     const res = await sigefStorage.listSystemUsers();
     if (res.success && res.users) {
       setSystemUsers(res.users);

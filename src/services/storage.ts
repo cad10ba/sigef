@@ -646,8 +646,10 @@ export const sigefStorage = {
     );
     if (!existingReq) {
       const reqType = data.role === 'admin' ? 'servidor' : data.role;
+      // Mesmo id que o trigger app_users_requester_sync gera no banco: assim o
+      // upsert atualiza a linha criada pelo trigger em vez de duplicá-la.
       const newReq: Requester = {
-        id: 'req-' + Date.now(),
+        id: 'req-' + newUser.id.replace(/^user-/, ''),
         name: newUser.name,
         type: reqType as any,
         registration: newUser.registration,
@@ -1342,6 +1344,12 @@ export const sigefStorage = {
   },
 
   // Supabase Cloud Sync Methods
+  // Existe sessão válida nesta aba? Usado para saber se as listas de dado
+  // pessoal (solicitantes, empréstimos, reservas) podem ser recarregadas.
+  hasSession(): boolean {
+    return Boolean(getSessionToken());
+  },
+
   async testSupabaseStatus() {
     return testSupabaseConnection();
   },
