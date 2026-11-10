@@ -886,7 +886,8 @@ export const sigefStorage = {
     }
 
     // If recurring weekly until end date, create subsequent reservations
-    if (reservation.recurrence === 'weekly' && reservation.recurrenceUntil) {
+    // (only for new reservations; editing must not duplicate the recurrence)
+    if (idx < 0 && reservation.recurrence === 'weekly' && reservation.recurrenceUntil) {
       const cur = new Date(reservation.date + 'T12:00:00');
       const until = new Date(reservation.recurrenceUntil + 'T12:00:00');
       while (true) {

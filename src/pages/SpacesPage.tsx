@@ -3,6 +3,7 @@ import { Space, Reservation, SpaceType, SpaceStatus, UseType } from '../types/si
 import { sigefStorage } from '../services/storage';
 import { formatDateBR, getSpaceStatusBadge, getUseTypeBadge } from '../utils/formatters';
 import { useToast } from '../components/Toast';
+import { EditReservationModal } from '../components/EditReservationModal';
 import {
   CalendarDays,
   Plus,
@@ -14,7 +15,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
-  Trash2,
   Edit2,
   Lock,
   Layers,
@@ -33,6 +33,9 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
 
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'semana' | 'dia'>('semana');
+
+  // Reservation Edit/Delete Modal state
+  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
 
   // Weekly date navigation (defaults to current week)
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
@@ -479,8 +482,12 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                           return (
                             <div
                               key={res.id}
-                              className={`p-2 rounded-lg border text-[11px] leading-tight mb-1 shadow-sm ${badge.colorClass}`}
-                              title={`${res.sport} - ${res.groupOrClass} (${res.teacherName}) [${res.startTime} às ${res.endTime}]`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingReservation(res);
+                              }}
+                              className={`p-2 rounded-lg border text-[11px] leading-tight mb-1 shadow-sm cursor-pointer hover:ring-1 hover:ring-white/40 transition-shadow ${badge.colorClass}`}
+                              title={`${res.sport} - ${res.groupOrClass} (${res.teacherName}) [${res.startTime} às ${res.endTime}] — clique para editar`}
                             >
                               <div className="flex items-center justify-between font-bold">
                                 <span className="truncate">{res.sport}</span>
@@ -544,7 +551,9 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                         return (
                           <div
                             key={res.id}
-                            className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${badge.colorClass}`}
+                            onClick={() => setEditingReservation(res)}
+                            className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer hover:ring-1 hover:ring-white/40 transition-shadow ${badge.colorClass}`}
+                            title="Clique para editar ou excluir esta reserva"
                           >
                             <div>
                               <div className="flex items-center gap-2">
@@ -568,20 +577,7 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                               <span className="text-xs font-mono text-slate-300">
                                 {res.participantsCount} participantes
                               </span>
-                              {userRole === 'admin' && (
-                                <button
-                                  onClick={() => {
-                                    if (confirm('Deseja cancelar esta reserva?')) {
-                                      sigefStorage.deleteReservation(res.id);
-                                      showToast('Reserva cancelada!', 'info');
-                                    }
-                                  }}
-                                  className="p-1.5 text-slate-400 hover:text-rose-400 rounded hover:bg-white/10"
-                                  title="Cancelar reserva"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
+                              <Edit2 className="w-4 h-4 text-slate-400" />
                             </div>
                           </div>
                         );
@@ -674,6 +670,15 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
             </form>
           </div>
         </div>
+      )}
+
+      {/* Reservation Edit/Delete Modal */}
+      {editingReservation && (
+        <EditReservationModal
+          reservation={editingReservation}
+          onClose={() => setEditingReservation(null)}
+          onSaved={() => setEditingReservation(null)}
+        />
       )}
 
       {/* Space Create/Edit Modal */}
