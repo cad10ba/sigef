@@ -10,6 +10,7 @@ front-end não importa, exibe nem copia mais nenhum SQL.
 | 1     | `001_schema.sql`                     | Cria as 9 tabelas, constraints e políticas base.                 |
 | 2     | `002_auth_hardening.sql`             | Hasheia as senhas (bcrypt), remove `password` e cria as RPCs de auth. |
 | 3     | `003_rls_policies.sql`               | Fecha o RLS: apenas leitura pública de `spaces`/`materials`/`kits`/`notices`/`regulation`; escrita só com sessão Supabase Auth. |
+| 4     | `004_sessions_and_user_listing.sql`  | Cria `app_sessions`, `sigef_login_session` (login + token), `sigef_list_users` (admin lista as contas) e `sigef_logout`. |
 
 `003_rls_policies.sql` **precisa** rodar depois de `001` e `002`: ele remove as
 políticas permissivas criadas pelo schema e depende das funções de

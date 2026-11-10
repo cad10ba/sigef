@@ -100,6 +100,7 @@ async function safeSupabaseDeleteAll(table: string) {
 const STORAGE_KEYS = {
   CURRENT_USER: 'sigef_current_user_v2_blank',
   AUTH_USER: 'sigef_auth_user_v2_blank',
+  SESSION_TOKEN: 'sigef_session_token_v1',
   USERS: 'sigef_users_v2_blank',
   SPACES: 'sigef_spaces_v2_blank',
   MATERIALS: 'sigef_materials_v2_blank',
@@ -129,7 +130,11 @@ const MEMORY_ONLY_KEYS = new Set<string>([
 
 // Sessão (quem está logado) em sessionStorage: some ao fechar a aba e é
 // apagada no logout. No localStorage a cópia sobreviveria por meses.
-const SESSION_KEYS = new Set<string>([STORAGE_KEYS.AUTH_USER, STORAGE_KEYS.CURRENT_USER]);
+const SESSION_KEYS = new Set<string>([
+  STORAGE_KEYS.AUTH_USER,
+  STORAGE_KEYS.CURRENT_USER,
+  STORAGE_KEYS.SESSION_TOKEN,
+]);
 
 // Cache permitido no localStorage: só dado operacional não sensível.
 const PERSISTED_KEYS = new Set<string>([
@@ -340,6 +345,45 @@ export const sigefStorage = {
     }
   },
 
+  // Lista as demais contas do sistema (admins, docentes, monitores e
+  // estagiários). A decisão é do servidor: exige sessão válida de um admin.
+  async listSystemUsers(): Promise<{
+    success: boolean;
+    message?: string;
+    users?: UserProfile[];
+  }> {
+    const token = sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+    if (!token) {
+      return { success: false, message: 'Sessão expirada. Entre novamente para ver os usuários.' };
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('sigef_list_users', { p_token: token });
+      if (error) {
+        console.error('Falha ao chamar sigef_list_users:', error.message);
+        return { success: false, message: 'Não foi possível carregar os usuários agora.' };
+      }
+      if (!data?.success) {
+        return { success: false, message: data?.message || 'Não foi possível carregar os usuários.' };
+      }
+
+      const users: UserProfile[] = (data.users || []).map((u: any) => ({
+        id: u.id,
+        name: u.name,
+        role: u.role,
+        registration: u.registration,
+        email: u.email,
+        roleLabel: u.roleLabel || u.role_label,
+        createdAt: u.createdAt || u.created_at,
+      }));
+
+      return { success: true, users };
+    } catch (err) {
+      console.error('Erro inesperado ao listar usuários:', err);
+      return { success: false, message: 'Não foi possível carregar os usuários agora.' };
+    }
+  },
+
   async loginAsync(
     identifier: string,
     password: string
@@ -357,13 +401,13 @@ export const sigefStorage = {
     // hash (bcrypt) dentro do banco e devolve o perfil. O navegador não lê a
     // lista de usuários, não compara senha e não tem caminho alternativo.
     try {
-      const { data, error } = await supabase.rpc('sigef_login', {
+      const { data, error } = await supabase.rpc('sigef_login_session', {
         p_identifier: cleanId,
         p_password: password,
       });
 
       if (error) {
-        console.error('Falha ao chamar sigef_login:', error.message);
+        console.error('Falha ao chamar sigef_login_session:', error.message);
         return { success: false, message: AUTH_UNAVAILABLE };
       }
 
@@ -396,6 +440,10 @@ export const sigefStorage = {
 
       this.setCurrentUser(cloudUser);
       this.setAuthUser(cloudUser);
+      // Token opaco da sessão: autoriza a listagem de contas no servidor.
+      if (data.session_token) {
+        sessionStorage.setItem(STORAGE_KEYS.SESSION_TOKEN, data.session_token);
+      }
       // Dados pessoais (solicitantes, empréstimos, reservas, usuários) são
       // buscados sob demanda: sem sessão válida a RLS devolve vazio/erro e
       // nada fica guardado no navegador.
@@ -524,6 +572,14 @@ export const sigefStorage = {
   },
 
   logout(): void {
+    const token = sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+    if (token) {
+      // Revoga a sessão no servidor sem atrasar a saída da interface.
+      void supabase.rpc('sigef_logout', { p_token: token }).then(
+        () => {},
+        () => {}
+      );
+    }
     // Nenhuma chave sigef_* (dado pessoal, cache ou sessão) sobrevive à saída.
     purgeAllSigefKeys();
     notifyListeners();
