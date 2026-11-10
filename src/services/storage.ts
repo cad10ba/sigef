@@ -384,6 +384,38 @@ export const sigefStorage = {
     }
   },
 
+  // Lista de solicitantes (docentes, estagiários, monitores e alunos). A RLS
+  // mantém public.requesters fechada para anon; o servidor devolve a lista
+  // somente quando o token da sessão é válido.
+  async listRequesters(): Promise<{
+    success: boolean;
+    message?: string;
+    requesters?: Requester[];
+  }> {
+    const token = sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+    if (!token) {
+      return { success: false, message: 'Sessão expirada. Entre novamente para ver os usuários.' };
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('sigef_list_requesters', { p_token: token });
+      if (error) {
+        console.error('Falha ao chamar sigef_list_requesters:', error.message);
+        return { success: false, message: 'Não foi possível carregar os usuários agora.' };
+      }
+      if (!data?.success) {
+        return { success: false, message: data?.message || 'Não foi possível carregar os usuários.' };
+      }
+
+      const requesters: Requester[] = (data.requesters || []).map(rowToRequester);
+      setStoredItem(STORAGE_KEYS.REQUESTERS, requesters);
+      return { success: true, requesters };
+    } catch (err) {
+      console.error('Erro inesperado ao listar solicitantes:', err);
+      return { success: false, message: 'Não foi possível carregar os usuários agora.' };
+    }
+  },
+
   async loginAsync(
     identifier: string,
     password: string
@@ -1269,12 +1301,10 @@ export const sigefStorage = {
         count += kits.length;
       }
 
-      // 4. Requesters
-      const { data: reqData, error: reqErr } = await supabase.from('requesters').select('*');
-      if (!reqErr && reqData && reqData.length > 0) {
-        const requesters = reqData.map(rowToRequester);
-        setStoredItem(STORAGE_KEYS.REQUESTERS, requesters);
-        count += requesters.length;
+      // 4. Requesters — via RPC com token da sessão (a tabela é fechada a anon).
+      const reqRes = await this.listRequesters();
+      if (reqRes.success && reqRes.requesters) {
+        count += reqRes.requesters.length;
       }
 
       // 5. Loans
