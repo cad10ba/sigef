@@ -128,16 +128,27 @@ async function safeSupabaseUpsert(table: string, data: any) {
 
     const token = getSessionToken();
     if (token) {
-      const { data: res, error } = await supabase.rpc('sigef_upsert_rows', {
-        p_token: token,
-        p_table: table,
-        p_rows: rows,
-      });
-      if (error || res?.success === false) {
-        console.warn(
-          `Supabase upsert into ${table} note:`,
-          error?.message || res?.message || 'falha na sincronização'
-        );
+      // Uma falha passageira (rede/token renovando) não pode perder o registro
+      // criado no aplicativo: tenta uma vez mais antes de desistir.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const { data: res, error } = await supabase.rpc('sigef_upsert_rows', {
+          p_token: token,
+          p_table: table,
+          p_rows: rows,
+        });
+        if (!error && res?.success !== false) return;
+        if (attempt === 0) {
+          console.warn(
+            `Supabase upsert into ${table} retry:`,
+            error?.message || res?.message || 'falha na sincronização'
+          );
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        } else {
+          console.warn(
+            `Supabase upsert into ${table} note:`,
+            error?.message || res?.message || 'falha na sincronização'
+          );
+        }
       }
       return;
     }
@@ -260,6 +271,24 @@ async function flushPendingDeletions(): Promise<void> {
     }
   }
   writePendingDeletes(remaining);
+}
+
+// ----------------------------------------------------------------
+// Leitura não pode sobrescrever escrita local
+// ----------------------------------------------------------------
+// Toda sincronização lê a nuvem e substitui a lista local. Se uma reserva for
+// criada enquanto essa leitura está em andamento, o resultado (anterior à
+// gravação) apagava da tela um registro que já existia no Supabase — ele só
+// reaparecia na sincronização seguinte. Cada escrita local avança um contador
+// por tabela; a leitura só aplica o resultado quando nada mudou no meio.
+const tableWriteSeq = new Map<string, number>();
+
+function markLocalWrite(table: string): void {
+  tableWriteSeq.set(table, (tableWriteSeq.get(table) || 0) + 1);
+}
+
+function writeSeqOf(table: string): number {
+  return tableWriteSeq.get(table) || 0;
 }
 
 async function safeSupabaseDeleteAll(table: string) {
@@ -591,6 +620,8 @@ export const sigefStorage = {
       return { success: false, message: 'Sessão expirada. Entre novamente para ver os usuários.' };
     }
 
+    const requestersSeq = writeSeqOf('requesters');
+
     try {
       const { data, error } = await supabase.rpc('sigef_list_requesters', { p_token: token });
       if (error) {
@@ -602,6 +633,11 @@ export const sigefStorage = {
       }
 
       const requesters: Requester[] = (data.requesters || []).map(rowToRequester);
+      if (writeSeqOf('requesters') !== requestersSeq) {
+        // Houve cadastro/alteração local durante a leitura: a lista local é
+        // mais nova que a resposta e permanece intacta.
+        return { success: true, requesters: this.getRequesters() };
+      }
       setStoredItem(STORAGE_KEYS.REQUESTERS, requesters);
       return { success: true, requesters };
     } catch (err) {
@@ -1159,6 +1195,7 @@ export const sigefStorage = {
       list.push(req);
     }
     setStoredItem(STORAGE_KEYS.REQUESTERS, list);
+    markLocalWrite('requesters');
     safeSupabaseUpsert('requesters', requesterToRow(req));
   },
 
@@ -1194,6 +1231,7 @@ export const sigefStorage = {
 
     const list = this.getRequesters().filter((r) => r.id !== requesterId);
     setStoredItem(STORAGE_KEYS.REQUESTERS, list);
+    markLocalWrite('requesters');
     return { success: true };
   },
 
@@ -1274,6 +1312,9 @@ export const sigefStorage = {
     }
 
     setStoredItem(STORAGE_KEYS.RESERVATIONS, list);
+    // Marca a escrita antes do envio: uma leitura da nuvem que já estava em
+    // andamento não pode apagar da tela a reserva recém-criada.
+    markLocalWrite('reservations');
     safeSupabaseUpsert('reservations', toPersist.map(reservationToRow));
     return { success: true };
   },
@@ -1281,6 +1322,7 @@ export const sigefStorage = {
   deleteReservation(reservationId: string): void {
     const list = this.getReservations().filter((r) => r.id !== reservationId);
     setStoredItem(STORAGE_KEYS.RESERVATIONS, list);
+    markLocalWrite('reservations');
     safeSupabaseDelete('reservations', reservationId);
   },
 
@@ -1369,6 +1411,7 @@ export const sigefStorage = {
     const loans = this.getLoans();
     loans.unshift(loan);
     setStoredItem(STORAGE_KEYS.LOANS, loans);
+    markLocalWrite('loans');
     this.refreshAllKitStatuses();
     safeSupabaseUpsert('loans', loanToRow(loan));
     return { success: true };
@@ -1443,6 +1486,7 @@ export const sigefStorage = {
     }
 
     setStoredItem(STORAGE_KEYS.LOANS, loans);
+    markLocalWrite('loans');
     safeSupabaseUpsert('loans', loanToRow(loan));
 
     // If requester had delay block, check if they still have overdue loans
@@ -1603,24 +1647,31 @@ export const sigefStorage = {
       // 7/8. Loans e reservations também são fechadas a anon: a leitura só
       //      acontece pela RPC autenticada (migração 006).
       if (token) {
+        const loansSeq = writeSeqOf('loans');
         const { data: loanRes, error: loanErr } = await supabase.rpc('sigef_list_loans', {
           p_token: token,
         });
         if (!loanErr && loanRes?.success && Array.isArray(loanRes.loans)) {
-          const loans = loanRes.loans.map(rowToLoan);
-          setStoredItem(STORAGE_KEYS.LOANS, loans);
-          count += loans.length;
+          // Escrita local durante a leitura: a resposta é anterior a ela.
+          if (writeSeqOf('loans') === loansSeq) {
+            const loans = loanRes.loans.map(rowToLoan);
+            setStoredItem(STORAGE_KEYS.LOANS, loans);
+            count += loans.length;
+          }
         } else if (loanErr) {
           console.warn('Falha ao carregar empréstimos do Supabase:', loanErr.message);
         }
 
+        const reservationsSeq = writeSeqOf('reservations');
         const { data: resRes, error: resErr } = await supabase.rpc('sigef_list_reservations', {
           p_token: token,
         });
         if (!resErr && resRes?.success && Array.isArray(resRes.reservations)) {
-          const reservations = resRes.reservations.map(rowToReservation);
-          setStoredItem(STORAGE_KEYS.RESERVATIONS, reservations);
-          count += reservations.length;
+          if (writeSeqOf('reservations') === reservationsSeq) {
+            const reservations = resRes.reservations.map(rowToReservation);
+            setStoredItem(STORAGE_KEYS.RESERVATIONS, reservations);
+            count += reservations.length;
+          }
         } else if (resErr) {
           console.warn('Falha ao carregar reservas do Supabase:', resErr.message);
         }
