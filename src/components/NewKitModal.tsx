@@ -11,6 +11,14 @@ interface NewKitModalProps {
   kitToEdit?: SportKit | null;
 }
 
+// Estado inicial vazio do kit: não herda nome, modalidade ou itens do último kit editado.
+const EMPTY_KIT_FORM = {
+  name: '',
+  description: '',
+  category: '' as MaterialCategory | '',
+  items: [] as SportKitItem[],
+};
+
 export const NewKitModal: React.FC<NewKitModalProps> = ({
   isOpen,
   onClose,
@@ -22,7 +30,7 @@ export const NewKitModal: React.FC<NewKitModalProps> = ({
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<MaterialCategory>('volei');
+  const [category, setCategory] = useState<MaterialCategory | ''>('');
   const [items, setItems] = useState<SportKitItem[]>([]);
 
   // Dynamic Category
@@ -42,21 +50,34 @@ export const NewKitModal: React.FC<NewKitModalProps> = ({
     showToast(`Modalidade "${created.name}" cadastrada com sucesso!`, 'success');
   };
 
+  const resetForm = (kit?: SportKit | null) => {
+    const values = kit
+      ? {
+          name: kit.name,
+          description: kit.description,
+          category: kit.category,
+          items: kit.items,
+        }
+      : EMPTY_KIT_FORM;
+
+    setName(values.name);
+    setDescription(values.description);
+    setCategory(values.category);
+    setItems([...values.items]);
+    setIsAddingCategory(false);
+    setNewCategoryName('');
+  };
+
   useEffect(() => {
-    if (kitToEdit) {
-      setName(kitToEdit.name);
-      setDescription(kitToEdit.description);
-      setCategory(kitToEdit.category);
-      setItems(kitToEdit.items);
-    } else {
-      setName('');
-      setDescription('');
-      setCategory('volei');
-      setItems([]);
-    }
+    if (isOpen) resetForm(kitToEdit);
   }, [kitToEdit, isOpen]);
 
   if (!isOpen) return null;
+
+  const handleCancelar = () => {
+    resetForm(null);
+    onClose();
+  };
 
   const handleAddItem = (materialId: string) => {
     const mat = materials.find((m) => m.id === materialId);
@@ -99,6 +120,11 @@ export const NewKitModal: React.FC<NewKitModalProps> = ({
       return;
     }
 
+    if (!category) {
+      showToast('Selecione a modalidade do kit.', 'error');
+      return;
+    }
+
     if (items.length === 0) {
       showToast('Adicione pelo menos um material ao kit.', 'error');
       return;
@@ -108,13 +134,14 @@ export const NewKitModal: React.FC<NewKitModalProps> = ({
       id: kitToEdit ? kitToEdit.id : 'kit-' + Date.now(),
       name: name.trim(),
       description: description.trim(),
-      category,
+      category: category as MaterialCategory,
       items,
       status: isReady ? 'pronto' : 'incompleto',
     };
 
     sigefStorage.saveKit(newKit);
     showToast(kitToEdit ? 'Kit esportivo atualizado!' : 'Novo kit esportivo montado!', 'success');
+    resetForm(null);
     onSaved();
     onClose();
   };
@@ -133,7 +160,7 @@ export const NewKitModal: React.FC<NewKitModalProps> = ({
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleCancelar}
             className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -221,7 +248,9 @@ export const NewKitModal: React.FC<NewKitModalProps> = ({
                     }
                   }}
                   className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-purple-500 text-xs"
+                  required
                 >
+                  <option value="">Selecione a modalidade</option>
                   <optgroup label="Modalidades Disponíveis">
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>
@@ -353,7 +382,7 @@ export const NewKitModal: React.FC<NewKitModalProps> = ({
           <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCancelar}
               className="px-4 py-2 text-xs sm:text-sm text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
             >
               Cancelar

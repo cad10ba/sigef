@@ -7,7 +7,6 @@ export interface UserProfile {
   registration: string; // SIAPE ou Matrícula
   email: string;
   roleLabel: string;
-  password?: string;
   createdAt?: string;
 }
 

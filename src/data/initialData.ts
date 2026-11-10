@@ -29,6 +29,26 @@ export const DEFAULT_SPORT_CATEGORIES: SportCategory[] = [
   { id: 'beach_tennis', name: 'Beach Tennis' },
 ];
 
+// Horários exibidos na coluna "Horário" da planilha de ocupação dos espaços.
+// Editáveis pela administração; as reservas não são alteradas ao mudar os rótulos.
+export const DEFAULT_TIME_SLOTS: string[] = [
+  '07:00',
+  '08:00',
+  '09:00',
+  '10:00',
+  '11:00',
+  '12:00',
+  '13:00',
+  '14:00',
+  '15:00',
+  '16:00',
+  '17:00',
+  '18:00',
+  '19:00',
+  '20:00',
+  '21:00',
+];
+
 // System starts completely blank without any pre-registered admin. Users/Admin are created directly at login.
 export const INITIAL_USERS: UserProfile[] = [];
 

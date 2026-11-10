@@ -3,8 +3,6 @@ import { sigefStorage } from '../services/storage';
 import {
   SUPABASE_URL,
   SUPABASE_PROJECT_ID,
-  SUPABASE_SQL_SCHEMA,
-  SUPABASE_RLS_HARDENING_SQL,
   REQUIRED_TABLES,
 } from '../services/supabase';
 import { useToast } from './Toast';
@@ -13,14 +11,12 @@ import {
   CheckCircle2,
   AlertTriangle,
   RefreshCw,
-  Copy,
   ExternalLink,
   X,
   CloudUpload,
   CloudDownload,
   Terminal,
   ShieldCheck,
-  Check,
   Lock,
   ShieldAlert,
   FileText,
@@ -36,7 +32,6 @@ export const SupabaseSyncModal: React.FC<SupabaseSyncModalProps> = ({ isOpen, on
 
   const [loading, setLoading] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
-  const [copiedType, setCopiedType] = useState<'none' | 'full' | 'rls'>('none');
   const [activeTab, setActiveTab] = useState<'overview' | 'security' | 'sql'>('security');
   const [status, setStatus] = useState<{
     connected: boolean;
@@ -80,23 +75,6 @@ export const SupabaseSyncModal: React.FC<SupabaseSyncModalProps> = ({ isOpen, on
 
   const currentUser = sigefStorage.getCurrentUser();
   if (!isOpen || currentUser.role !== 'admin') return null;
-
-  const handleCopySQL = async (type: 'full' | 'rls') => {
-    try {
-      const textToCopy = type === 'rls' ? SUPABASE_RLS_HARDENING_SQL : SUPABASE_SQL_SCHEMA;
-      await navigator.clipboard.writeText(textToCopy);
-      setCopiedType(type);
-      showToast(
-        type === 'rls'
-          ? 'Script de Correção RLS copiado! Cole no SQL Editor do Supabase.'
-          : 'Script SQL Completo copiado com sucesso!',
-        'success'
-      );
-      setTimeout(() => setCopiedType('none'), 3000);
-    } catch {
-      showToast('Não foi possível copiar automaticamente.', 'error');
-    }
-  };
 
   const handleSyncFromCloud = async () => {
     setLoading(true);
@@ -294,17 +272,10 @@ export const SupabaseSyncModal: React.FC<SupabaseSyncModalProps> = ({ isOpen, on
               <div>
                 <span className="text-xs font-bold text-white block">Aplicar Correções no Supabase:</span>
                 <span className="text-[11px] text-slate-400">
-                  Execute o script de hardening no SQL Editor do seu projeto Supabase.
+                  Aplique as migrações versionadas de <code className="text-emerald-300">supabase/migrations/</code> no SQL Editor do projeto.
                 </span>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <button
-                  onClick={() => handleCopySQL('rls')}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all shadow-md active:scale-[0.98]"
-                >
-                  {copiedType === 'rls' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedType === 'rls' ? 'Script RLS Copiado!' : 'Copiar Correção RLS'}</span>
-                </button>
                 <a
                   href={sqlEditorUrl}
                   target="_blank"
@@ -383,23 +354,20 @@ export const SupabaseSyncModal: React.FC<SupabaseSyncModalProps> = ({ isOpen, on
         {/* TAB 3: SQL Scripts */}
         {activeTab === 'sql' && (
           <div className="mt-4 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-[#0B1418] border border-white/10 space-y-2">
               <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                 <Terminal className="w-4 h-4 text-emerald-400" />
-                <span>Script SQL de Endurecimento RLS (supabase_rls_hardening.sql)</span>
+                <span>Scripts SQL fora do bundle</span>
               </span>
-              <button
-                onClick={() => handleCopySQL('rls')}
-                className="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
-              >
-                <Copy className="w-3 h-3" />
-                <span>Copiar Script RLS</span>
-              </button>
-            </div>
-            <div className="relative rounded-2xl bg-[#0B1418] border border-white/10 p-3 max-h-52 overflow-y-auto">
-              <pre className="text-[11px] text-slate-300 font-mono leading-relaxed whitespace-pre">
-                {SUPABASE_RLS_HARDENING_SQL}
-              </pre>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                O SQL de schema, de autenticação e de RLS agora vive apenas no repositório, versionado em
+                <code className="text-emerald-300"> supabase/migrations/</code>. O cliente não recebe mais nenhum script.
+              </p>
+              <ul className="text-[11px] font-mono text-slate-300 space-y-1 pt-1">
+                <li>1. supabase/migrations/001_schema.sql</li>
+                <li>2. supabase/migrations/002_auth_hardening.sql</li>
+                <li>3. supabase/migrations/003_rls_policies.sql</li>
+              </ul>
             </div>
           </div>
         )}

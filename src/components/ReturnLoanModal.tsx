@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Loan, ReturnItemState } from '../types/sigef';
 import { sigefStorage } from '../services/storage';
 import { useToast } from './Toast';
@@ -19,19 +19,34 @@ export const ReturnLoanModal: React.FC<ReturnLoanModalProps> = ({
 }) => {
   const { showToast } = useToast();
 
-  if (!isOpen || !loan) return null;
-
   const [inspections, setInspections] = useState<
     { materialId: string; returnStatus: ReturnItemState; note: string }[]
-  >(
-    loan.items.map((item) => ({
-      materialId: item.materialId,
-      returnStatus: item.returnStatus === 'pendente' ? 'devolvido_ok' : item.returnStatus,
-      note: item.inspectionNote || '',
-    }))
-  );
+  >([]);
 
   const [generalNotes, setGeneralNotes] = useState('');
+
+  // A vistoria parte sempre do estado inicial do empréstimo selecionado.
+  const resetForm = () => {
+    setInspections(
+      (loan?.items || []).map((item) => ({
+        materialId: item.materialId,
+        returnStatus: item.returnStatus === 'pendente' ? 'devolvido_ok' : item.returnStatus,
+        note: item.inspectionNote || '',
+      }))
+    );
+    setGeneralNotes('');
+  };
+
+  useEffect(() => {
+    if (isOpen && loan) resetForm();
+  }, [isOpen, loan]);
+
+  if (!isOpen || !loan) return null;
+
+  const handleCancelar = () => {
+    resetForm();
+    onClose();
+  };
 
   const handleStatusChange = (materialId: string, status: ReturnItemState) => {
     setInspections(
@@ -65,6 +80,7 @@ export const ReturnLoanModal: React.FC<ReturnLoanModalProps> = ({
       showToast('Todos os materiais foram devolvidos em perfeito estado!', 'success');
     }
 
+    resetForm();
     onReturned();
     onClose();
   };
@@ -83,7 +99,7 @@ export const ReturnLoanModal: React.FC<ReturnLoanModalProps> = ({
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleCancelar}
             className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -211,8 +227,8 @@ export const ReturnLoanModal: React.FC<ReturnLoanModalProps> = ({
           <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs sm:text-sm text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
+              onClick={handleCancelar}
+              className="px-4 py-2 text-xs sm:text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-colors rounded-xl"
             >
               Cancelar
             </button>

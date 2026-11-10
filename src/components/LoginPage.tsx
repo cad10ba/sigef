@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { sigefStorage } from '../services/storage';
 import { UserProfile } from '../types/sigef';
 import { useToast } from './Toast';
@@ -21,8 +21,20 @@ interface LoginPageProps {
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const { showToast } = useToast();
-  const usersList = sigefStorage.getUsers();
-  const hasUsers = usersList.length > 0;
+  // A lista de usuários não é mais guardada no navegador: o servidor informa
+  // apenas se já existe alguma conta, para decidir entre login e a primeira
+  // configuração. Em qualquer dúvida (RLS, rede) mostra o login — nunca o
+  // formulário de cadastro. A validação de credenciais é só no servidor.
+  const [hasUsers, setHasUsers] = useState(true);
+  useEffect(() => {
+    let active = true;
+    sigefStorage.systemHasAccounts().then((has) => {
+      if (active) setHasUsers(has);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Login form state
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -34,8 +46,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regRegistration, setRegRegistration] = useState('');
-  const [regDepartment, setRegDepartment] = useState('Coordenação de Educação Física (COEF)');
-  const [regPhone, setRegPhone] = useState('(73) 9');
+  const [regDepartment, setRegDepartment] = useState('');
+  const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
@@ -64,7 +76,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     }
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!regName.trim() || !regEmail.trim() || !regRegistration.trim() || !regPassword.trim()) {
@@ -83,31 +95,30 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      const res = sigefStorage.registerUser({
-        name: regName,
-        email: regEmail,
-        registration: regRegistration,
-        role: 'admin',
-        password: regPassword,
-        department: regDepartment,
-        phone: regPhone,
-      });
-      setIsSubmitting(false);
+    const res = await sigefStorage.registerUser({
+      name: regName,
+      email: regEmail,
+      registration: regRegistration,
+      role: 'admin',
+      password: regPassword,
+      department: regDepartment,
+      phone: regPhone,
+    });
+    setIsSubmitting(false);
 
-      if (res.success && res.user) {
-        showToast(res.message, 'success');
-        setRegName('');
-        setRegEmail('');
-        setRegRegistration('');
-        setRegPassword('');
-        setRegConfirmPassword('');
-        setRegPhone('(73) 9');
-        onLoginSuccess(res.user);
-      } else {
-        showToast(res.message, 'error');
-      }
-    }, 250);
+    if (res.success && res.user) {
+      showToast(res.message, 'success');
+      setRegName('');
+      setRegEmail('');
+      setRegRegistration('');
+      setRegDepartment('');
+      setRegPassword('');
+      setRegConfirmPassword('');
+      setRegPhone('');
+      onLoginSuccess(res.user);
+    } else {
+      showToast(res.message, 'error');
+    }
   };
 
   return (

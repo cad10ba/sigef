@@ -23,6 +23,7 @@ import {
   INITIAL_NOTICES,
   INITIAL_REGULATION,
   DEFAULT_SPORT_CATEGORIES,
+  DEFAULT_TIME_SLOTS,
 } from '../data/initialData';
 import {
   supabase,
@@ -40,10 +41,16 @@ import {
   rowToReservation,
   noticeToRow,
   rowToNotice,
-  userToRow,
   rowToUser,
   testSupabaseConnection,
 } from './supabase';
+
+// A autenticação é decidida exclusivamente pelo banco (RPC sigef_login).
+// Nenhuma senha é comparada, gravada ou guardada no navegador.
+const AUTH_GENERIC_FAILURE =
+  'Não foi possível entrar. Verifique o identificador e a senha informados.';
+const AUTH_UNAVAILABLE =
+  'Não foi possível validar suas credenciais agora. Verifique a conexão e tente novamente.';
 
 async function safeSupabaseUpsert(table: string, data: any) {
   try {
@@ -93,6 +100,7 @@ async function safeSupabaseDeleteAll(table: string) {
 const STORAGE_KEYS = {
   CURRENT_USER: 'sigef_current_user_v2_blank',
   AUTH_USER: 'sigef_auth_user_v2_blank',
+  SESSION_TOKEN: 'sigef_session_token_v1',
   USERS: 'sigef_users_v2_blank',
   SPACES: 'sigef_spaces_v2_blank',
   MATERIALS: 'sigef_materials_v2_blank',
@@ -103,8 +111,70 @@ const STORAGE_KEYS = {
   NOTICES: 'sigef_notices_v2_blank',
   REGULATION: 'sigef_regulation_v2_blank',
   CATEGORIES: 'sigef_categories_v2_custom',
+  TIME_SLOTS: 'sigef_time_slots_v1',
   THEME: 'sigef_theme_v2_blank',
 };
+
+// --------------------------------------------------------------------
+// Classificação das chaves (LGPD)
+// --------------------------------------------------------------------
+// NUNCA no navegador: dado pessoal (nome, e-mail, telefone, matrícula) ou
+// histórico de responsabilidade. Vivem só em memória enquanto a aba existe e
+// são hidratados do Supabase sob demanda, já sob RLS.
+const MEMORY_ONLY_KEYS = new Set<string>([
+  STORAGE_KEYS.USERS,
+  STORAGE_KEYS.REQUESTERS,
+  STORAGE_KEYS.LOANS,
+  STORAGE_KEYS.RESERVATIONS,
+]);
+
+// Sessão (quem está logado) em sessionStorage: some ao fechar a aba e é
+// apagada no logout. No localStorage a cópia sobreviveria por meses.
+const SESSION_KEYS = new Set<string>([
+  STORAGE_KEYS.AUTH_USER,
+  STORAGE_KEYS.CURRENT_USER,
+  STORAGE_KEYS.SESSION_TOKEN,
+]);
+
+// Cache permitido no localStorage: só dado operacional não sensível.
+const PERSISTED_KEYS = new Set<string>([
+  STORAGE_KEYS.SPACES,
+  STORAGE_KEYS.MATERIALS,
+  STORAGE_KEYS.KITS,
+  STORAGE_KEYS.NOTICES,
+  STORAGE_KEYS.REGULATION,
+  STORAGE_KEYS.CATEGORIES,
+  STORAGE_KEYS.TIME_SLOTS,
+  STORAGE_KEYS.THEME,
+]);
+
+const memoryStore = new Map<string, string>();
+
+// Expurgo seletivo (boot): preserva o cache não sensível e a sessão da aba,
+// e remove qualquer cópia antiga de dado pessoal gravada por versões anteriores.
+function purgeNonPersistedKeys(): void {
+  memoryStore.clear();
+  [localStorage, sessionStorage].forEach((storage) => {
+    Object.keys(storage)
+      .filter((key) => key.startsWith('sigef_'))
+      .forEach((key) => {
+        const allowed =
+          storage === localStorage ? PERSISTED_KEYS.has(key) : SESSION_KEYS.has(key);
+        if (!allowed) storage.removeItem(key);
+      });
+  });
+}
+
+// Expurgo total (logout): nenhuma chave sigef_* sobrevive em nenhum storage,
+// exceto a configuração da grade de horários (dado operacional, não pessoal).
+function purgeAllSigefKeys(): void {
+  memoryStore.clear();
+  [localStorage, sessionStorage].forEach((storage) => {
+    Object.keys(storage)
+      .filter((key) => key.startsWith('sigef_') && key !== STORAGE_KEYS.TIME_SLOTS)
+      .forEach((key) => storage.removeItem(key));
+  });
+}
 
 // Event listener mechanism to notify active tabs/components when storage updates
 type StorageListener = () => void;
@@ -129,39 +199,44 @@ function notifyListeners() {
 
 function getStoredItem<T>(key: string, defaultValue: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    // Dado pessoal: só existe em memória, pelo tempo de vida da aba.
+    if (MEMORY_ONLY_KEYS.has(key)) {
+      const raw = memoryStore.get(key);
+      return raw ? (JSON.parse(raw) as T) : defaultValue;
+    }
+    const storage = SESSION_KEYS.has(key) ? sessionStorage : localStorage;
+    const raw = storage.getItem(key);
     if (!raw) return defaultValue;
     return JSON.parse(raw) as T;
   } catch (e) {
-    console.error(`Failed to read ${key} from localStorage:`, e);
+    console.error(`Failed to read ${key} from storage:`, e);
     return defaultValue;
   }
 }
 
 function setStoredItem<T>(key: string, value: T): void {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    const serialized = JSON.stringify(value);
+    if (MEMORY_ONLY_KEYS.has(key)) {
+      memoryStore.set(key, serialized);
+      // Garante que nenhuma cópia antiga continue no disco.
+      localStorage.removeItem(key);
+    } else if (SESSION_KEYS.has(key)) {
+      sessionStorage.setItem(key, serialized);
+    } else {
+      localStorage.setItem(key, serialized);
+    }
     notifyListeners();
   } catch (e) {
-    console.error(`Failed to save ${key} to localStorage:`, e);
+    console.error(`Failed to save ${key} to storage:`, e);
   }
 }
 
 export const sigefStorage = {
   init() {
-    // Clean old v1 demo keys if present so user starts fresh in blank
-    [
-      'sigef_spaces_v1',
-      'sigef_materials_v1',
-      'sigef_kits_v1',
-      'sigef_requesters_v1',
-      'sigef_loans_v1',
-      'sigef_reservations_v1',
-      'sigef_notices_v1',
-      'sigef_regulation_v1',
-      'sigef_users_v1',
-      'sigef_current_user_v1',
-    ].forEach((k) => localStorage.removeItem(k));
+    // Remove do navegador qualquer cópia antiga de dado pessoal (inclusive as
+    // chaves v1 de demonstração) antes de montar o cache não sensível.
+    purgeNonPersistedKeys();
 
     if (!localStorage.getItem(STORAGE_KEYS.SPACES)) {
       setStoredItem(STORAGE_KEYS.SPACES, INITIAL_SPACES);
@@ -172,15 +247,8 @@ export const sigefStorage = {
     if (!localStorage.getItem(STORAGE_KEYS.KITS)) {
       setStoredItem(STORAGE_KEYS.KITS, INITIAL_KITS);
     }
-    if (!localStorage.getItem(STORAGE_KEYS.REQUESTERS)) {
-      setStoredItem(STORAGE_KEYS.REQUESTERS, INITIAL_REQUESTERS);
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.LOANS)) {
-      setStoredItem(STORAGE_KEYS.LOANS, INITIAL_LOANS);
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.RESERVATIONS)) {
-      setStoredItem(STORAGE_KEYS.RESERVATIONS, INITIAL_RESERVATIONS);
-    }
+    // requesters/loans/reservations não são semeados nem persistidos: chegam
+    // do Supabase sob demanda e ficam apenas em memória.
     if (!localStorage.getItem(STORAGE_KEYS.NOTICES)) {
       setStoredItem(STORAGE_KEYS.NOTICES, INITIAL_NOTICES);
     }
@@ -190,17 +258,13 @@ export const sigefStorage = {
     if (!localStorage.getItem(STORAGE_KEYS.CATEGORIES)) {
       setStoredItem(STORAGE_KEYS.CATEGORIES, DEFAULT_SPORT_CATEGORIES);
     }
-    if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-      setStoredItem(STORAGE_KEYS.USERS, []);
-    } else {
-      // Remove any previously pre-seeded hardcoded admin
-      const users = this.getUsers().filter((u) => u.id !== 'user-admin');
-      setStoredItem(STORAGE_KEYS.USERS, users);
-    }
+    // app_users nunca é cacheado: começa vazio em memória e é carregado do
+    // Supabase (somente as colunas de perfil, sob RLS) durante a sessão.
+    setStoredItem(STORAGE_KEYS.USERS, []);
     const authUser = this.getAuthUser();
     if (authUser && authUser.id === 'user-admin') {
       this.setAuthUser(null);
-      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
     }
     this.refreshAllKitStatuses();
     this.syncFromSupabase().catch(() => {});
@@ -215,9 +279,10 @@ export const sigefStorage = {
     setStoredItem(STORAGE_KEYS.RESERVATIONS, INITIAL_RESERVATIONS);
     setStoredItem(STORAGE_KEYS.NOTICES, INITIAL_NOTICES);
     setStoredItem(STORAGE_KEYS.REGULATION, INITIAL_REGULATION);
+    setStoredItem(STORAGE_KEYS.TIME_SLOTS, DEFAULT_TIME_SLOTS);
     setStoredItem(STORAGE_KEYS.USERS, []);
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-    localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+    sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    sessionStorage.removeItem(STORAGE_KEYS.AUTH_USER);
     this.refreshAllKitStatuses();
   },
 
@@ -227,7 +292,7 @@ export const sigefStorage = {
   },
 
   getAuthUser(): UserProfile | null {
-    const raw = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
+    const raw = sessionStorage.getItem(STORAGE_KEYS.AUTH_USER);
     if (!raw) return null;
     try {
       return JSON.parse(raw) as UserProfile;
@@ -238,9 +303,9 @@ export const sigefStorage = {
 
   setAuthUser(user: UserProfile | null) {
     if (!user) {
-      localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+      sessionStorage.removeItem(STORAGE_KEYS.AUTH_USER);
     } else {
-      localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
+      sessionStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
     }
     notifyListeners();
   },
@@ -267,91 +332,166 @@ export const sigefStorage = {
     this.setAuthUser(user);
   },
 
-  login(identifier: string, password: string): { success: boolean; message: string; user?: UserProfile } {
-    const users = this.getUsers();
-    const cleanId = identifier.trim().toLowerCase();
-    const cleanPass = password.trim();
+  // Como a lista de usuários não é mais cacheada, o app pergunta ao servidor
+  // apenas "existe alguma conta?" — sem ler nenhum perfil. Se a RLS negar a
+  // leitura, o projeto já está configurado e protegido: cai no login.
+  async systemHasAccounts(): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.from('app_users').select('id').limit(1);
+      if (error) return true;
+      return (data?.length ?? 0) > 0;
+    } catch {
+      return true;
+    }
+  },
 
-    if (users.length === 0) {
-      return {
-        success: false,
-        message: 'Nenhum usuário cadastrado no sistema ainda. Cadastre o Administrador na aba "Criar Nova Conta".',
-      };
+  // Lista as demais contas do sistema (admins, docentes, monitores e
+  // estagiários). A decisão é do servidor: exige sessão válida de um admin.
+  async listSystemUsers(): Promise<{
+    success: boolean;
+    message?: string;
+    users?: UserProfile[];
+  }> {
+    const token = sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+    if (!token) {
+      return { success: false, message: 'Sessão expirada. Entre novamente para ver os usuários.' };
     }
 
-    const user = users.find(
-      (u) =>
-        u.email.toLowerCase() === cleanId ||
-        u.registration.toLowerCase() === cleanId ||
-        (cleanId.replace(/\D/g, '') && u.registration.toLowerCase().replace(/\D/g, '') === cleanId.replace(/\D/g, '')) ||
-        (cleanId === 'admin' && u.role === 'admin')
-    );
+    try {
+      const { data, error } = await supabase.rpc('sigef_list_users', { p_token: token });
+      if (error) {
+        console.error('Falha ao chamar sigef_list_users:', error.message);
+        return { success: false, message: 'Não foi possível carregar os usuários agora.' };
+      }
+      if (!data?.success) {
+        return { success: false, message: data?.message || 'Não foi possível carregar os usuários.' };
+      }
 
-    if (!user) {
-      return { success: false, message: 'Usuário não encontrado. Verifique seu e-mail institucional ou matrícula/SIAPE.' };
+      const users: UserProfile[] = (data.users || []).map((u: any) => ({
+        id: u.id,
+        name: u.name,
+        role: u.role,
+        registration: u.registration,
+        email: u.email,
+        roleLabel: u.roleLabel || u.role_label,
+        createdAt: u.createdAt || u.created_at,
+      }));
+
+      return { success: true, users };
+    } catch (err) {
+      console.error('Erro inesperado ao listar usuários:', err);
+      return { success: false, message: 'Não foi possível carregar os usuários agora.' };
+    }
+  },
+
+  // Lista de solicitantes (docentes, estagiários, monitores e alunos). A RLS
+  // mantém public.requesters fechada para anon; o servidor devolve a lista
+  // somente quando o token da sessão é válido.
+  async listRequesters(): Promise<{
+    success: boolean;
+    message?: string;
+    requesters?: Requester[];
+  }> {
+    const token = sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+    if (!token) {
+      return { success: false, message: 'Sessão expirada. Entre novamente para ver os usuários.' };
     }
 
-    const expectedPass = user.password || '123456';
-    if (cleanPass !== expectedPass) {
-      return { success: false, message: 'Senha incorreta. Verifique suas credenciais e tente novamente.' };
-    }
+    try {
+      const { data, error } = await supabase.rpc('sigef_list_requesters', { p_token: token });
+      if (error) {
+        console.error('Falha ao chamar sigef_list_requesters:', error.message);
+        return { success: false, message: 'Não foi possível carregar os usuários agora.' };
+      }
+      if (!data?.success) {
+        return { success: false, message: data?.message || 'Não foi possível carregar os usuários.' };
+      }
 
-    this.setCurrentUser(user);
-    this.setAuthUser(user);
-    return { success: true, message: `Login realizado com sucesso! Bem-vindo(a), ${user.name}.`, user };
+      const requesters: Requester[] = (data.requesters || []).map(rowToRequester);
+      setStoredItem(STORAGE_KEYS.REQUESTERS, requesters);
+      return { success: true, requesters };
+    } catch (err) {
+      console.error('Erro inesperado ao listar solicitantes:', err);
+      return { success: false, message: 'Não foi possível carregar os usuários agora.' };
+    }
   },
 
   async loginAsync(
     identifier: string,
     password: string
   ): Promise<{ success: boolean; message: string; user?: UserProfile }> {
-    // 1. Fast local verification
-    const localRes = this.login(identifier, password);
-    if (localRes.success) {
-      return localRes;
+    const cleanId = identifier.trim();
+
+    if (!cleanId || !password) {
+      return {
+        success: false,
+        message: 'Preencha seu identificador (e-mail ou matrícula/SIAPE) e sua senha.',
+      };
     }
 
-    // 2. Cloud RPC verification via Supabase sigef_login (secure server-side verification without password exposure)
+    // Única verificação de credenciais: a RPC sigef_login compara a senha com o
+    // hash (bcrypt) dentro do banco e devolve o perfil. O navegador não lê a
+    // lista de usuários, não compara senha e não tem caminho alternativo.
     try {
-      const { data, error } = await supabase.rpc('sigef_login', {
-        p_identifier: identifier,
+      const { data, error } = await supabase.rpc('sigef_login_session', {
+        p_identifier: cleanId,
         p_password: password,
       });
 
-      if (!error && data && data.success && data.user) {
-        const u = data.user;
-        const cloudUser: UserProfile = {
-          id: u.id,
-          name: u.name,
-          role: u.role,
-          registration: u.registration,
-          email: u.email,
-          roleLabel: u.roleLabel || u.role_label,
-          createdAt: u.createdAt || u.created_at,
-        };
-
-        // Cache user profile locally
-        const users = this.getUsers();
-        const existingIdx = users.findIndex((x) => x.id === cloudUser.id);
-        if (existingIdx >= 0) {
-          users[existingIdx] = { ...users[existingIdx], ...cloudUser };
-        } else {
-          users.push(cloudUser);
-        }
-        setStoredItem(STORAGE_KEYS.USERS, users);
-
-        this.setCurrentUser(cloudUser);
-        this.setAuthUser(cloudUser);
-        return { success: true, message: data.message || `Login realizado com sucesso!`, user: cloudUser };
+      if (error) {
+        console.error('Falha ao chamar sigef_login_session:', error.message);
+        return { success: false, message: AUTH_UNAVAILABLE };
       }
-    } catch {
-      // Offline fallback
-    }
 
-    return localRes;
+      if (!data?.success || !data.user) {
+        // Mensagem fixa: o servidor também não distingue "usuário não
+        // encontrado" de "senha incorreta", então não há o que explorar aqui.
+        return { success: false, message: AUTH_GENERIC_FAILURE };
+      }
+
+      const u = data.user;
+      const cloudUser: UserProfile = {
+        id: u.id,
+        name: u.name,
+        role: u.role,
+        registration: u.registration,
+        email: u.email,
+        roleLabel: u.roleLabel || u.role_label,
+        createdAt: u.createdAt || u.created_at,
+      };
+
+      // Cache do perfil (nunca da senha) para a interface.
+      const users = this.getUsers();
+      const existingIdx = users.findIndex((x) => x.id === cloudUser.id);
+      if (existingIdx >= 0) {
+        users[existingIdx] = { ...users[existingIdx], ...cloudUser };
+      } else {
+        users.push(cloudUser);
+      }
+      setStoredItem(STORAGE_KEYS.USERS, users);
+
+      this.setCurrentUser(cloudUser);
+      this.setAuthUser(cloudUser);
+      // Token opaco da sessão: autoriza a listagem de contas no servidor.
+      if (data.session_token) {
+        sessionStorage.setItem(STORAGE_KEYS.SESSION_TOKEN, data.session_token);
+      }
+      // Dados pessoais (solicitantes, empréstimos, reservas, usuários) são
+      // buscados sob demanda: sem sessão válida a RLS devolve vazio/erro e
+      // nada fica guardado no navegador.
+      this.syncFromSupabase().catch(() => {});
+      return {
+        success: true,
+        message: data.message || 'Login realizado com sucesso!',
+        user: cloudUser,
+      };
+    } catch (err) {
+      console.error('Erro inesperado no login:', err);
+      return { success: false, message: AUTH_UNAVAILABLE };
+    }
   },
 
-  registerUser(data: {
+  async registerUser(data: {
     name: string;
     email: string;
     registration: string;
@@ -359,20 +499,17 @@ export const sigefStorage = {
     password: string;
     department?: string;
     phone?: string;
-  }): { success: boolean; message: string; user?: UserProfile } {
-    const users = this.getUsers();
+  }): Promise<{ success: boolean; message: string; user?: UserProfile }> {
+    const cleanName = data.name.trim();
     const cleanEmail = data.email.trim().toLowerCase();
     const cleanReg = data.registration.trim().toLowerCase();
 
-    if (!data.name.trim() || !cleanEmail || !cleanReg || !data.password) {
+    if (!cleanName || !cleanEmail || !cleanReg || !data.password) {
       return { success: false, message: 'Todos os campos obrigatórios devem ser preenchidos.' };
     }
 
-    const existing = users.find(
-      (u) => u.email.toLowerCase() === cleanEmail || u.registration.toLowerCase() === cleanReg
-    );
-    if (existing) {
-      return { success: false, message: 'Já existe um cadastro com este e-mail institucional ou matrícula/SIAPE.' };
+    if (data.password.trim().length < 4) {
+      return { success: false, message: 'A senha deve conter no mínimo 4 caracteres.' };
     }
 
     let roleLabel = 'Docente de Educação Física';
@@ -380,17 +517,57 @@ export const sigefStorage = {
     else if (data.role === 'monitor') roleLabel = 'Monitor / Bolsista de Ed. Física';
     else if (data.role === 'estagiario') roleLabel = 'Estagiário de Ed. Física';
 
-    const newUser: UserProfile = {
+    const draft: UserProfile = {
       id: 'user-' + Date.now(),
-      name: data.name.trim(),
+      name: cleanName,
       email: data.email.trim(),
       registration: data.registration.trim(),
       role: data.role,
       roleLabel,
-      password: data.password,
       createdAt: new Date().toISOString(),
     };
 
+    // A conta é criada pela RPC: a senha viaja uma única vez e o banco grava
+    // apenas o hash (bcrypt). O navegador nunca guarda a senha.
+    let newUser: UserProfile;
+    try {
+      const { data: res, error } = await supabase.rpc('sigef_register_user', {
+        p_id: draft.id,
+        p_name: draft.name,
+        p_role: draft.role,
+        p_registration: draft.registration,
+        p_email: draft.email,
+        p_role_label: draft.roleLabel,
+        p_password: data.password,
+      });
+
+      if (error) {
+        console.error('Falha ao chamar sigef_register_user:', error.message);
+        return {
+          success: false,
+          message: 'Não foi possível concluir o cadastro agora. Verifique a conexão e tente novamente.',
+        };
+      }
+
+      if (!res?.success || !res.user) {
+        return { success: false, message: res?.message || 'Não foi possível concluir o cadastro.' };
+      }
+
+      newUser = {
+        ...draft,
+        ...res.user,
+        roleLabel: res.user.roleLabel || draft.roleLabel,
+        createdAt: res.user.createdAt || draft.createdAt,
+      };
+    } catch (err) {
+      console.error('Erro inesperado no cadastro:', err);
+      return {
+        success: false,
+        message: 'Não foi possível concluir o cadastro agora. Verifique a conexão e tente novamente.',
+      };
+    }
+
+    const users = this.getUsers();
     users.push(newUser);
     setStoredItem(STORAGE_KEYS.USERS, users);
 
@@ -416,8 +593,6 @@ export const sigefStorage = {
       safeSupabaseUpsert('requesters', requesterToRow(newReq));
     }
 
-    safeSupabaseUpsert('app_users', userToRow(newUser));
-
     this.setCurrentUser(newUser);
     this.setAuthUser(newUser);
 
@@ -429,61 +604,57 @@ export const sigefStorage = {
   },
 
   logout(): void {
-    localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+    const token = sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+    if (token) {
+      // Revoga a sessão no servidor sem atrasar a saída da interface.
+      void supabase.rpc('sigef_logout', { p_token: token }).then(
+        () => {},
+        () => {}
+      );
+    }
+    // Nenhuma chave sigef_* (dado pessoal, cache ou sessão) sobrevive à saída.
+    purgeAllSigefKeys();
     notifyListeners();
   },
 
-  updateUserPassword(userId: string, newPassword: string): { success: boolean; message: string } {
-    const users = this.getUsers();
-    const idx = users.findIndex((u) => u.id === userId);
-    if (idx < 0) {
-      return { success: false, message: 'Usuário não encontrado.' };
-    }
-
-    if (!newPassword || newPassword.trim().length < 4) {
-      return { success: false, message: 'A nova senha deve ter no mínimo 4 caracteres.' };
-    }
-
-    users[idx].password = newPassword.trim();
-    setStoredItem(STORAGE_KEYS.USERS, users);
-
-    // If it is current or auth user, update them as well
-    const auth = this.getAuthUser();
-    if (auth && auth.id === userId) {
-      auth.password = newPassword.trim();
-      this.setAuthUser(auth);
-    }
-    const current = getStoredItem<UserProfile | null>(STORAGE_KEYS.CURRENT_USER, null);
-    if (current && current.id === userId) {
-      current.password = newPassword.trim();
-      setStoredItem(STORAGE_KEYS.CURRENT_USER, current);
-    }
-
-    safeSupabaseUpsert('app_users', userToRow(users[idx]));
-    notifyListeners();
-
-    return { success: true, message: 'Senha atualizada com sucesso!' };
-  },
-
-  changeSelfPassword(currentPassword: string, newPassword: string): { success: boolean; message: string } {
+  async changeSelfPassword(
+    currentPassword: string,
+    newPassword: string
+  ): Promise<{ success: boolean; message: string }> {
     const currentUser = this.getCurrentUser();
-    const users = this.getUsers();
-    const user = users.find((u) => u.id === currentUser.id);
 
-    if (!user) {
-      return { success: false, message: 'Usuário não localizado no acervo de contas.' };
-    }
-
-    const expected = user.password || '123456';
-    if (currentPassword.trim() !== expected) {
-      return { success: false, message: 'A senha atual informada está incorreta.' };
+    if (!currentPassword.trim()) {
+      return { success: false, message: 'Informe a senha atual.' };
     }
 
     if (!newPassword || newPassword.trim().length < 4) {
       return { success: false, message: 'A nova senha deve possuir pelo menos 4 caracteres.' };
     }
 
-    return this.updateUserPassword(user.id, newPassword);
+    // A senha atual é conferida contra o hash dentro do banco; o navegador não
+    // tem cópia de senha para comparar.
+    try {
+      const { data, error } = await supabase.rpc('sigef_change_password', {
+        p_user_id: currentUser.id,
+        p_current_password: currentPassword,
+        p_new_password: newPassword,
+      });
+
+      if (error) {
+        console.error('Falha ao chamar sigef_change_password:', error.message);
+        return { success: false, message: AUTH_UNAVAILABLE };
+      }
+
+      if (!data?.success) {
+        return { success: false, message: data?.message || 'Não foi possível alterar a senha.' };
+      }
+
+      notifyListeners();
+      return { success: true, message: data.message || 'Senha atualizada com sucesso!' };
+    } catch (err) {
+      console.error('Erro inesperado ao trocar a senha:', err);
+      return { success: false, message: AUTH_UNAVAILABLE };
+    }
   },
 
   // Spaces
@@ -507,6 +678,16 @@ export const sigefStorage = {
     const list = this.getSpaces().filter((s) => s.id !== spaceId);
     setStoredItem(STORAGE_KEYS.SPACES, list);
     safeSupabaseDelete('spaces', spaceId);
+  },
+
+  // Coluna de horários da planilha de ocupação (editável pelo admin).
+  getTimeSlots(): string[] {
+    const stored = getStoredItem<string[]>(STORAGE_KEYS.TIME_SLOTS, DEFAULT_TIME_SLOTS);
+    return stored.length > 0 ? stored : DEFAULT_TIME_SLOTS;
+  },
+
+  saveTimeSlots(slots: string[]): void {
+    setStoredItem(STORAGE_KEYS.TIME_SLOTS, slots);
   },
 
   // Materials & Inventory
@@ -808,7 +989,8 @@ export const sigefStorage = {
     }
 
     // If recurring weekly until end date, create subsequent reservations
-    if (reservation.recurrence === 'weekly' && reservation.recurrenceUntil) {
+    // (only for new reservations; editing must not duplicate the recurrence)
+    if (idx < 0 && reservation.recurrence === 'weekly' && reservation.recurrenceUntil) {
       const cur = new Date(reservation.date + 'T12:00:00');
       const until = new Date(reservation.recurrenceUntil + 'T12:00:00');
       while (true) {
@@ -1119,12 +1301,10 @@ export const sigefStorage = {
         count += kits.length;
       }
 
-      // 4. Requesters
-      const { data: reqData, error: reqErr } = await supabase.from('requesters').select('*');
-      if (!reqErr && reqData && reqData.length > 0) {
-        const requesters = reqData.map(rowToRequester);
-        setStoredItem(STORAGE_KEYS.REQUESTERS, requesters);
-        count += requesters.length;
+      // 4. Requesters — via RPC com token da sessão (a tabela é fechada a anon).
+      const reqRes = await this.listRequesters();
+      if (reqRes.success && reqRes.requesters) {
+        count += reqRes.requesters.length;
       }
 
       // 5. Loans
@@ -1151,20 +1331,13 @@ export const sigefStorage = {
         count += notices.length;
       }
 
-      // 8. Users (Selecting only safe non-sensitive columns; password is never retrieved via anon SELECT)
+      // 8. Perfis de usuário (somente colunas de perfil; o hash nunca é lido
+      //    pelo cliente e a lista não é usada para validar login).
       const { data: userData, error: userErr } = await supabase
         .from('app_users')
         .select('id, name, role, registration, email, role_label, created_at');
       if (!userErr && userData && userData.length > 0) {
-        const currentUsers = this.getUsers();
-        const users = userData.map((r) => {
-          const u = rowToUser(r);
-          const local = currentUsers.find((cu) => cu.id === u.id);
-          if (local && local.password) {
-            u.password = local.password;
-          }
-          return u;
-        });
+        const users = userData.map(rowToUser);
         setStoredItem(STORAGE_KEYS.USERS, users);
         count += users.length;
       }
@@ -1230,11 +1403,8 @@ export const sigefStorage = {
         if (!error) count += notices.length;
       }
 
-      const users = this.getUsers();
-      if (users.length > 0) {
-        const { error } = await supabase.from('app_users').upsert(users.map(userToRow));
-        if (!error) count += users.length;
-      }
+      // app_users não é exportado: credenciais só são gravadas pelas RPCs
+      // sigef_register_user / sigef_change_password, sempre com hash.
 
       return {
         success: true,

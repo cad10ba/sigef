@@ -10,6 +10,17 @@ interface NewSystemUserModalProps {
   onUserCreated?: () => void;
 }
 
+const EMPTY_USER_FORM = {
+  name: '',
+  email: '',
+  registration: '',
+  role: '' as UserRole | '',
+  department: '',
+  phone: '',
+  password: '',
+  showPassword: false,
+};
+
 export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
   isOpen,
   onClose,
@@ -20,22 +31,22 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [registration, setRegistration] = useState('');
-  const [role, setRole] = useState<UserRole>('docente');
-  const [department, setDepartment] = useState('Coordenação de Educação Física (COEF)');
-  const [phone, setPhone] = useState('(73) 9');
-  const [password, setPassword] = useState('123456');
+  const [role, setRole] = useState<UserRole | ''>('');
+  const [department, setDepartment] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const resetForm = () => {
-    setName('');
-    setEmail('');
-    setRegistration('');
-    setRole('docente');
-    setDepartment('Coordenação de Educação Física (COEF)');
-    setPhone('(73) 9');
-    setPassword('123456');
-    setShowPassword(false);
+    setName(EMPTY_USER_FORM.name);
+    setEmail(EMPTY_USER_FORM.email);
+    setRegistration(EMPTY_USER_FORM.registration);
+    setRole(EMPTY_USER_FORM.role);
+    setDepartment(EMPTY_USER_FORM.department);
+    setPhone(EMPTY_USER_FORM.phone);
+    setPassword(EMPTY_USER_FORM.password);
+    setShowPassword(EMPTY_USER_FORM.showPassword);
   };
 
   React.useEffect(() => {
@@ -51,10 +62,10 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
     onClose();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim() || !email.trim() || !registration.trim() || !password.trim()) {
+    if (!name.trim() || !email.trim() || !registration.trim() || !password.trim() || !role) {
       showToast('Preencha os campos obrigatórios (*).', 'error');
       return;
     }
@@ -65,11 +76,11 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
     }
 
     setIsSubmitting(true);
-    const res = sigefStorage.registerUser({
+    const res = await sigefStorage.registerUser({
       name,
       email,
       registration,
-      role,
+      role: role as UserRole,
       password,
       department,
       phone,
@@ -145,7 +156,9 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
                 value={role}
                 onChange={(e) => setRole(e.target.value as UserRole)}
                 className="w-full h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none"
+                required
               >
+                <option value="">Selecione o perfil</option>
                 <option value="docente">Docente de Educação Física</option>
                 <option value="estagiario">Estagiário de Ed. Física</option>
                 <option value="monitor">Monitor / Bolsista de Ed. Física</option>

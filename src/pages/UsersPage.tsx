@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Requester, RequesterType, Loan, Reservation } from '../types/sigef';
+import React, { useEffect, useState } from 'react';
+import { Requester, RequesterType, Loan, Reservation, UserProfile, UserRole } from '../types/sigef';
 import { sigefStorage } from '../services/storage';
 import { formatDateBR, formatDateTimeBR } from '../utils/formatters';
 import { useToast } from '../components/Toast';
@@ -37,6 +37,44 @@ export const UsersPage: React.FC<UsersPageProps> = ({
   const [search, setSearch] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedUserDetail, setSelectedUserDetail] = useState<Requester | null>(null);
+
+  // Contas do sistema (admins, docentes, monitores, estagiários) — só o admin
+  // recebe esta lista; a autorização é verificada no servidor.
+  const [systemUsers, setSystemUsers] = useState<UserProfile[]>([]);
+  const [systemUsersLoading, setSystemUsersLoading] = useState(false);
+  const [systemUsersError, setSystemUsersError] = useState('');
+
+  const loadSystemUsers = async () => {
+    if (userRole !== 'admin') return;
+    setSystemUsersLoading(true);
+    setSystemUsersError('');
+    const res = await sigefStorage.listSystemUsers();
+    if (res.success && res.users) {
+      setSystemUsers(res.users);
+    } else {
+      setSystemUsersError(res.message || 'Não foi possível carregar os usuários.');
+    }
+    setSystemUsersLoading(false);
+  };
+
+  useEffect(() => {
+    loadSystemUsers();
+  }, [userRole]);
+
+  const getRoleBadge = (role: UserRole) => {
+    switch (role) {
+      case 'admin':
+        return { label: 'Admin', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' };
+      case 'docente':
+        return { label: 'Docente', color: 'bg-sky-500/20 text-sky-300 border-sky-500/30' };
+      case 'monitor':
+        return { label: 'Monitor', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' };
+      case 'estagiario':
+        return { label: 'Estagiário', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' };
+      default:
+        return { label: role, color: 'bg-slate-500/20 text-slate-300 border-slate-500/30' };
+    }
+  };
 
   // User form modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -196,6 +234,67 @@ export const UsersPage: React.FC<UsersPageProps> = ({
           <span>Cadastrar Usuário</span>
         </button>
       </div>
+
+      {/* Contas do Sistema (somente admin) */}
+      {userRole === 'admin' && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-[#102027] border border-white/10">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/10">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Shield className="w-4 h-4 text-emerald-400" />
+                <span>Contas do Sistema ({systemUsers.length})</span>
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Todos os demais usuários cadastrados, incluindo administradores e docentes.
+              </p>
+            </div>
+            <button
+              onClick={loadSystemUsers}
+              disabled={systemUsersLoading}
+              className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 text-[11px] font-semibold rounded-lg transition-colors disabled:opacity-50"
+            >
+              {systemUsersLoading ? 'Carregando...' : 'Atualizar'}
+            </button>
+          </div>
+
+          {systemUsersError && (
+            <p className="mt-3 text-[11px] text-rose-300">{systemUsersError}</p>
+          )}
+
+          {!systemUsersError && !systemUsersLoading && systemUsers.length === 0 && (
+            <p className="mt-3 text-[11px] text-slate-400 italic">
+              Nenhuma outra conta cadastrada no sistema.
+            </p>
+          )}
+
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            {systemUsers.map((u) => {
+              const roleBadge = getRoleBadge(u.role);
+              return (
+                <div
+                  key={u.id}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-[#0B1418] border border-white/5"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-emerald-700/70 text-white font-bold flex items-center justify-center text-xs shrink-0">
+                    {u.name.split(' ').map((p) => p[0]).filter(Boolean).slice(0, 2).join('')}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-white truncate">{u.name}</p>
+                    <p className="text-[10px] text-slate-400 font-mono truncate">
+                      {u.registration} • {u.email}
+                    </p>
+                  </div>
+                  <span
+                    className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border shrink-0 ${roleBadge.color}`}
+                  >
+                    {roleBadge.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">

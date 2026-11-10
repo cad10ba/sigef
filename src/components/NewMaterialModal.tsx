@@ -11,6 +11,19 @@ interface NewMaterialModalProps {
   materialToEdit?: Material | null;
 }
 
+// Estado inicial de um cadastro novo: todos os campos abrem em branco.
+const EMPTY_MATERIAL_FORM = {
+  patrimonyNumber: '',
+  name: '',
+  technicalDescription: '',
+  category: '' as MaterialCategory | '',
+  totalQuantity: '' as number | '',
+  availableQuantity: '' as number | '',
+  conservationState: '' as ConservationState | '',
+  storageLocation: '',
+  minStockAlert: '' as number | '',
+};
+
 export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
   isOpen,
   onClose,
@@ -22,43 +35,57 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
   const [patrimonyNumber, setPatrimonyNumber] = useState('');
   const [name, setName] = useState('');
   const [technicalDescription, setTechnicalDescription] = useState('');
-  const [category, setCategory] = useState<MaterialCategory>('volei');
-  const [totalQuantity, setTotalQuantity] = useState(10);
-  const [availableQuantity, setAvailableQuantity] = useState(10);
-  const [conservationState, setConservationState] = useState<ConservationState>('bom');
-  const [storageLocation, setStorageLocation] = useState('Armário A1 - Prateleira 1');
-  const [minStockAlert, setMinStockAlert] = useState(4);
+  const [category, setCategory] = useState<MaterialCategory | ''>('');
+  const [totalQuantity, setTotalQuantity] = useState<number | ''>('');
+  const [availableQuantity, setAvailableQuantity] = useState<number | ''>('');
+  const [conservationState, setConservationState] = useState<ConservationState | ''>('');
+  const [storageLocation, setStorageLocation] = useState('');
+  const [minStockAlert, setMinStockAlert] = useState<number | ''>('');
 
   // Custom Category creation
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const categories = sigefStorage.getCategories();
 
+  // Modo "editar" recebe o item selecionado; modo "novo" sempre parte do estado vazio.
+  const resetForm = (material?: Material | null) => {
+    const values = material
+      ? {
+          patrimonyNumber: material.patrimonyNumber,
+          name: material.name,
+          technicalDescription: material.technicalDescription,
+          category: material.category,
+          totalQuantity: material.totalQuantity,
+          availableQuantity: material.availableQuantity,
+          conservationState: material.conservationState,
+          storageLocation: material.storageLocation,
+          minStockAlert: material.minStockAlert,
+        }
+      : { ...EMPTY_MATERIAL_FORM };
+
+    setPatrimonyNumber(values.patrimonyNumber);
+    setName(values.name);
+    setTechnicalDescription(values.technicalDescription);
+    setCategory(values.category);
+    setTotalQuantity(values.totalQuantity);
+    setAvailableQuantity(values.availableQuantity);
+    setConservationState(values.conservationState);
+    setStorageLocation(values.storageLocation);
+    setMinStockAlert(values.minStockAlert);
+    setIsAddingCategory(false);
+    setNewCategoryName('');
+  };
+
   useEffect(() => {
-    if (materialToEdit) {
-      setPatrimonyNumber(materialToEdit.patrimonyNumber);
-      setName(materialToEdit.name);
-      setTechnicalDescription(materialToEdit.technicalDescription);
-      setCategory(materialToEdit.category);
-      setTotalQuantity(materialToEdit.totalQuantity);
-      setAvailableQuantity(materialToEdit.availableQuantity);
-      setConservationState(materialToEdit.conservationState);
-      setStorageLocation(materialToEdit.storageLocation);
-      setMinStockAlert(materialToEdit.minStockAlert);
-    } else {
-      setPatrimonyNumber(`PAT-2026-${Math.floor(1000 + Math.random() * 9000)}`);
-      setName('');
-      setTechnicalDescription('');
-      setCategory('futsal');
-      setTotalQuantity(12);
-      setAvailableQuantity(12);
-      setConservationState('novo');
-      setStorageLocation('Almoxarifado Central - Prateleira 1');
-      setMinStockAlert(4);
-    }
+    if (isOpen) resetForm(materialToEdit);
   }, [materialToEdit, isOpen]);
 
   if (!isOpen) return null;
+
+  const handleCancelar = () => {
+    resetForm(null);
+    onClose();
+  };
 
   const handleCreateCategory = () => {
     if (!newCategoryName.trim()) {
@@ -80,6 +107,21 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
       return;
     }
 
+    if (!category) {
+      showToast('Selecione a categoria/modalidade do material.', 'error');
+      return;
+    }
+
+    if (!conservationState) {
+      showToast('Selecione o estado de conservação.', 'error');
+      return;
+    }
+
+    if (!totalQuantity || Number(totalQuantity) < 1) {
+      showToast('Informe a quantidade total do material.', 'error');
+      return;
+    }
+
     const currentUser = sigefStorage.getCurrentUser();
 
     const newMat: Material = {
@@ -87,12 +129,15 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
       patrimonyNumber: patrimonyNumber.trim(),
       name: name.trim(),
       technicalDescription: technicalDescription.trim(),
-      category,
+      category: category as MaterialCategory,
       totalQuantity: Number(totalQuantity),
-      availableQuantity: Math.min(Number(availableQuantity), Number(totalQuantity)),
-      conservationState,
+      availableQuantity: Math.min(
+        availableQuantity === '' ? Number(totalQuantity) : Number(availableQuantity),
+        Number(totalQuantity)
+      ),
+      conservationState: conservationState as ConservationState,
       storageLocation: storageLocation.trim(),
-      minStockAlert: Number(minStockAlert),
+      minStockAlert: Number(minStockAlert) || 0,
       history: materialToEdit
         ? materialToEdit.history
         : [
@@ -112,6 +157,7 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
       materialToEdit ? 'Material atualizado com sucesso!' : 'Novo material cadastrado no acervo!',
       'success'
     );
+    resetForm(null);
     onSaved();
     onClose();
   };
@@ -130,7 +176,7 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleCancelar}
             className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -257,6 +303,7 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
                   }}
                   className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-amber-500 text-xs"
                 >
+                  <option value="">Selecione a modalidade</option>
                   <optgroup label="Modalidades Disponíveis">
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>
@@ -279,7 +326,9 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
                 value={conservationState}
                 onChange={(e) => setConservationState(e.target.value as ConservationState)}
                 className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-amber-500"
+                required
               >
+                <option value="">Selecione o estado</option>
                 <option value="novo">Novo (Sem uso / Perfeito)</option>
                 <option value="bom">Bom (Uso regular excelente)</option>
                 <option value="regular">Regular (Desgaste natural)</option>
@@ -299,7 +348,8 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
                 type="number"
                 min="1"
                 value={totalQuantity}
-                onChange={(e) => setTotalQuantity(Number(e.target.value))}
+                onChange={(e) => setTotalQuantity(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="0"
                 className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 text-center font-bold text-sm font-mono focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -312,7 +362,10 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
                 min="0"
                 max={totalQuantity}
                 value={availableQuantity}
-                onChange={(e) => setAvailableQuantity(Number(e.target.value))}
+                onChange={(e) =>
+                  setAvailableQuantity(e.target.value === '' ? '' : Number(e.target.value))
+                }
+                placeholder="0"
                 className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 text-center font-bold text-sm font-mono focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -324,7 +377,8 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
                 type="number"
                 min="0"
                 value={minStockAlert}
-                onChange={(e) => setMinStockAlert(Number(e.target.value))}
+                onChange={(e) => setMinStockAlert(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="0"
                 className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 text-center font-bold text-sm font-mono focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -348,7 +402,7 @@ export const NewMaterialModal: React.FC<NewMaterialModalProps> = ({
           <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCancelar}
               className="px-4 py-2 text-xs sm:text-sm text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
             >
               Cancelar

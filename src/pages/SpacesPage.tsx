@@ -3,6 +3,7 @@ import { Space, Reservation, SpaceType, SpaceStatus, UseType } from '../types/si
 import { sigefStorage } from '../services/storage';
 import { formatDateBR, getSpaceStatusBadge, getUseTypeBadge } from '../utils/formatters';
 import { useToast } from '../components/Toast';
+import { EditReservationModal } from '../components/EditReservationModal';
 import {
   CalendarDays,
   Plus,
@@ -14,8 +15,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
-  Trash2,
   Edit2,
+  Trash2,
   Lock,
   Layers,
   Info,
@@ -33,6 +34,9 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
 
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'semana' | 'dia'>('semana');
+
+  // Reservation Edit/Delete Modal state
+  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
 
   // Weekly date navigation (defaults to current week)
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
@@ -58,24 +62,12 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
     new Date().toISOString().split('T')[0]
   );
 
-  // Time slots from 07:00 to 22:00
-  const timeSlots = [
-    '07:00',
-    '08:00',
-    '09:00',
-    '10:00',
-    '11:00',
-    '12:00',
-    '13:00',
-    '14:00',
-    '15:00',
-    '16:00',
-    '17:00',
-    '18:00',
-    '19:00',
-    '20:00',
-    '21:00',
-  ];
+  // Coluna de horários da planilha (configurável pela administração).
+  const timeSlots = sigefStorage.getTimeSlots();
+
+  // Time Slots Edit Modal state
+  const [isTimeSlotsModalOpen, setIsTimeSlotsModalOpen] = useState(false);
+  const [timeSlotsDraft, setTimeSlotsDraft] = useState<string[]>([]);
 
   // Maintenance Modal state
   const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
@@ -89,17 +81,17 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
   const [editingSpace, setEditingSpace] = useState<Space | null>(null);
   const [spaceForm, setSpaceForm] = useState<{
     name: string;
-    type: SpaceType;
-    capacity: number;
+    type: SpaceType | '';
+    capacity: number | '';
     openHours: string;
     allowedSports: string;
     notes: string;
   }>({
     name: '',
-    type: 'quadra',
-    capacity: 50,
-    openHours: '07:00 às 22:00',
-    allowedSports: 'Futsal, Vôlei',
+    type: '',
+    capacity: '',
+    openHours: '',
+    allowedSports: '',
     notes: '',
   });
 
@@ -113,6 +105,46 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
     const next = new Date(currentWeekStart);
     next.setDate(next.getDate() + 7);
     setCurrentWeekStart(next);
+  };
+
+  const handleOpenTimeSlots = () => {
+    setTimeSlotsDraft([...timeSlots]);
+    setIsTimeSlotsModalOpen(true);
+  };
+
+  const handleAddTimeSlot = () => {
+    const last = timeSlotsDraft[timeSlotsDraft.length - 1];
+    if (!last) {
+      setTimeSlotsDraft([...timeSlotsDraft, '']);
+      return;
+    }
+    const [hours, minutes] = last.split(':').map(Number);
+    const next = `${String((hours + 1) % 24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    setTimeSlotsDraft([...timeSlotsDraft, next]);
+  };
+
+  const handleRemoveTimeSlot = (index: number) => {
+    setTimeSlotsDraft(timeSlotsDraft.filter((_, i) => i !== index));
+  };
+
+  const handleSaveTimeSlots = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleaned = timeSlotsDraft.map((t) => t.trim()).filter(Boolean);
+
+    if (cleaned.length === 0) {
+      showToast('Adicione pelo menos um horário para a planilha.', 'error');
+      return;
+    }
+
+    if (new Set(cleaned).size !== cleaned.length) {
+      showToast('Há horários repetidos. Remova as duplicidades antes de salvar.', 'error');
+      return;
+    }
+
+    const sorted = [...cleaned].sort((a, b) => a.localeCompare(b));
+    sigefStorage.saveTimeSlots(sorted);
+    showToast('Coluna de horários atualizada com sucesso!', 'success');
+    setIsTimeSlotsModalOpen(false);
   };
 
   const handleOpenMaintenance = (space: Space) => {
@@ -153,10 +185,10 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
     setEditingSpace(null);
     setSpaceForm({
       name: '',
-      type: 'quadra',
-      capacity: 50,
-      openHours: '07:00 às 22:00',
-      allowedSports: 'Futsal, Vôlei',
+      type: '',
+      capacity: '',
+      openHours: '',
+      allowedSports: '',
       notes: '',
     });
     setIsSpaceModalOpen(true);
@@ -182,12 +214,22 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
       return;
     }
 
+    if (!spaceForm.type) {
+      showToast('Selecione o tipo de espaço.', 'error');
+      return;
+    }
+
+    if (!spaceForm.capacity || Number(spaceForm.capacity) < 1) {
+      showToast('Informe a capacidade do espaço.', 'error');
+      return;
+    }
+
     const space: Space = {
       id: editingSpace ? editingSpace.id : 'espaco-' + Date.now(),
       name: spaceForm.name.trim(),
-      type: spaceForm.type,
-      capacity: Number(spaceForm.capacity) || 40,
-      openHours: spaceForm.openHours.trim() || '07:00 às 22:00',
+      type: spaceForm.type as SpaceType,
+      capacity: Number(spaceForm.capacity),
+      openHours: spaceForm.openHours.trim(),
       allowedSports: spaceForm.allowedSports
         .split(',')
         .map((s) => s.trim())
@@ -381,6 +423,17 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
             </select>
           </div>
 
+          {userRole === 'admin' && (
+            <button
+              onClick={handleOpenTimeSlots}
+              className="flex items-center gap-1.5 h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs font-semibold text-slate-200 hover:text-white hover:border-emerald-500/50 transition-colors"
+              title="Editar a coluna de horários da planilha"
+            >
+              <Clock className="w-4 h-4 text-emerald-400" />
+              <span>Editar Horários</span>
+            </button>
+          )}
+
           {/* Mode Switcher */}
           <div className="flex items-center bg-[#0B1418] p-1 rounded-xl border border-white/10">
             <button
@@ -479,8 +532,12 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                           return (
                             <div
                               key={res.id}
-                              className={`p-2 rounded-lg border text-[11px] leading-tight mb-1 shadow-sm ${badge.colorClass}`}
-                              title={`${res.sport} - ${res.groupOrClass} (${res.teacherName}) [${res.startTime} às ${res.endTime}]`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingReservation(res);
+                              }}
+                              className={`p-2 rounded-lg border text-[11px] leading-tight mb-1 shadow-sm cursor-pointer hover:ring-1 hover:ring-white/40 transition-shadow ${badge.colorClass}`}
+                              title={`${res.sport} - ${res.groupOrClass} (${res.teacherName}) [${res.startTime} às ${res.endTime}] — clique para editar`}
                             >
                               <div className="flex items-center justify-between font-bold">
                                 <span className="truncate">{res.sport}</span>
@@ -544,7 +601,9 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                         return (
                           <div
                             key={res.id}
-                            className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${badge.colorClass}`}
+                            onClick={() => setEditingReservation(res)}
+                            className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer hover:ring-1 hover:ring-white/40 transition-shadow ${badge.colorClass}`}
+                            title="Clique para editar ou excluir esta reserva"
                           >
                             <div>
                               <div className="flex items-center gap-2">
@@ -568,20 +627,7 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                               <span className="text-xs font-mono text-slate-300">
                                 {res.participantsCount} participantes
                               </span>
-                              {userRole === 'admin' && (
-                                <button
-                                  onClick={() => {
-                                    if (confirm('Deseja cancelar esta reserva?')) {
-                                      sigefStorage.deleteReservation(res.id);
-                                      showToast('Reserva cancelada!', 'info');
-                                    }
-                                  }}
-                                  className="p-1.5 text-slate-400 hover:text-rose-400 rounded hover:bg-white/10"
-                                  title="Cancelar reserva"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
+                              <Edit2 className="w-4 h-4 text-slate-400" />
                             </div>
                           </div>
                         );
@@ -605,6 +651,74 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Time Slots Edit Modal */}
+      {isTimeSlotsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
+          <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
+            <h3 className="text-base font-bold text-white flex items-center gap-2 mb-1">
+              <Clock className="w-5 h-5 text-emerald-400" />
+              <span>Editar Coluna de Horários</span>
+            </h3>
+            <p className="text-xs text-slate-400 mb-4">
+              Ajuste os horários exibidos na planilha de ocupação. As reservas já registradas não são alteradas.
+            </p>
+
+            <form onSubmit={handleSaveTimeSlots} className="space-y-3 text-xs">
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                {timeSlotsDraft.map((time, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <input
+                      type="time"
+                      value={time}
+                      onChange={(e) => {
+                        const next = [...timeSlotsDraft];
+                        next[index] = e.target.value;
+                        setTimeSlotsDraft(next);
+                      }}
+                      className="flex-1 h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTimeSlot(index)}
+                      disabled={timeSlotsDraft.length === 1}
+                      className="p-2 text-slate-400 hover:text-rose-400 hover:bg-white/5 rounded-lg transition-colors disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:bg-transparent"
+                      title="Remover horário"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAddTimeSlot}
+                className="w-full h-9 border border-dashed border-white/15 rounded-xl text-slate-300 hover:text-emerald-400 hover:border-emerald-500/40 hover:bg-emerald-500/5 font-semibold transition-colors"
+              >
+                + Adicionar horário
+              </button>
+
+              <div className="pt-3 border-t border-white/10 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTimeSlotsModalOpen(false)}
+                  className="px-3 py-2 text-slate-400 hover:text-white rounded-xl"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#1B8A4B] hover:bg-[#22A55B] text-white font-semibold rounded-xl"
+                >
+                  Salvar Horários
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -676,6 +790,15 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
         </div>
       )}
 
+      {/* Reservation Edit/Delete Modal */}
+      {editingReservation && (
+        <EditReservationModal
+          reservation={editingReservation}
+          onClose={() => setEditingReservation(null)}
+          onSaved={() => setEditingReservation(null)}
+        />
+      )}
+
       {/* Space Create/Edit Modal */}
       {isSpaceModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
@@ -707,7 +830,9 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                     value={spaceForm.type}
                     onChange={(e) => setSpaceForm({ ...spaceForm, type: e.target.value as SpaceType })}
                     className="w-full h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none"
+                    required
                   >
+                    <option value="">Selecione o tipo</option>
                     <option value="quadra">Quadra Poliesportiva</option>
                     <option value="campo">Campo Society / Futebol</option>
                     <option value="areia">Quadra de Areia</option>
@@ -721,8 +846,15 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                   <label className="block font-semibold text-slate-300 mb-1">Capacidade (Pessoas)</label>
                   <input
                     type="number"
+                    min="1"
                     value={spaceForm.capacity}
-                    onChange={(e) => setSpaceForm({ ...spaceForm, capacity: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setSpaceForm({
+                        ...spaceForm,
+                        capacity: e.target.value === '' ? '' : Number(e.target.value),
+                      })
+                    }
+                    placeholder="Ex: 50"
                     className="w-full h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none"
                     required
                   />

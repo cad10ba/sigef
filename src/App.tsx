@@ -236,35 +236,41 @@ export default function App() {
           </main>
         </div>
 
-        {/* Modal: Nova Reserva */}
-        <NewReservationModal
-          isOpen={isReservationModalOpen}
-          onClose={() => setIsReservationModalOpen(false)}
-          onSaved={() => {}}
-          preselectedSpaceId={reservationParams.spaceId}
-          preselectedDate={reservationParams.date}
-          preselectedTime={reservationParams.time}
-        />
+        {/* Modal: Nova Reserva — montado apenas quando aberto (estado sempre limpo) */}
+        {isReservationModalOpen && (
+          <NewReservationModal
+            isOpen
+            onClose={() => setIsReservationModalOpen(false)}
+            onSaved={() => {}}
+            preselectedSpaceId={reservationParams.spaceId}
+            preselectedDate={reservationParams.date}
+            preselectedTime={reservationParams.time}
+          />
+        )}
 
-        {/* Modal: Novo Empréstimo */}
-        <NewLoanModal
-          isOpen={isLoanModalOpen}
-          onClose={() => setIsLoanModalOpen(false)}
-          initialRequesterId={loanTargetRequesterId}
-          onLoanCreated={(createdLoan) => {
-            setIsLoanModalOpen(false);
-            setReceiptLoanTarget(createdLoan);
-            setIsReceiptModalOpen(true);
-          }}
-        />
+        {/* Modal: Novo Empréstimo — montado apenas quando aberto */}
+        {isLoanModalOpen && (
+          <NewLoanModal
+            isOpen
+            onClose={() => setIsLoanModalOpen(false)}
+            initialRequesterId={loanTargetRequesterId}
+            onLoanCreated={(createdLoan) => {
+              setIsLoanModalOpen(false);
+              setReceiptLoanTarget(createdLoan);
+              setIsReceiptModalOpen(true);
+            }}
+          />
+        )}
 
-        {/* Modal: Devolução & Vistoria */}
-        <ReturnLoanModal
-          isOpen={isReturnModalOpen}
-          onClose={() => setIsReturnModalOpen(false)}
-          loan={returnLoanTarget}
-          onReturned={() => {}}
-        />
+        {/* Modal: Devolução & Vistoria — montado apenas quando aberto */}
+        {isReturnModalOpen && returnLoanTarget && (
+          <ReturnLoanModal
+            isOpen
+            onClose={() => setIsReturnModalOpen(false)}
+            loan={returnLoanTarget}
+            onReturned={() => {}}
+          />
+        )}
 
         {/* Modal: Termo Oficial / Comprovante para Impressão */}
         <LoanReceiptModal
@@ -273,28 +279,34 @@ export default function App() {
           loan={receiptLoanTarget}
         />
 
-        {/* Modal: Novo Material */}
-        <NewMaterialModal
-          isOpen={isMaterialModalOpen}
-          onClose={() => setIsMaterialModalOpen(false)}
-          materialToEdit={materialToEdit}
-          onSaved={() => {}}
-        />
+        {/* Modal: Novo Material — montado apenas quando aberto (novo cadastro começa vazio) */}
+        {isMaterialModalOpen && (
+          <NewMaterialModal
+            isOpen
+            onClose={() => setIsMaterialModalOpen(false)}
+            materialToEdit={materialToEdit}
+            onSaved={() => {}}
+          />
+        )}
 
-        {/* Modal: Novo Kit */}
-        <NewKitModal
-          isOpen={isKitModalOpen}
-          onClose={() => setIsKitModalOpen(false)}
-          kitToEdit={kitToEdit}
-          onSaved={() => {}}
-        />
+        {/* Modal: Novo Kit — montado apenas quando aberto */}
+        {isKitModalOpen && (
+          <NewKitModal
+            isOpen
+            onClose={() => setIsKitModalOpen(false)}
+            kitToEdit={kitToEdit}
+            onSaved={() => {}}
+          />
+        )}
 
-        {/* Modal: Cadastrar Novo Usuário do Sistema */}
-        <NewSystemUserModal
-          isOpen={isNewUserModalOpen}
-          onClose={() => setIsNewUserModalOpen(false)}
-          onUserCreated={() => setTick((t) => t + 1)}
-        />
+        {/* Modal: Cadastrar Novo Usuário do Sistema — montado apenas quando aberto */}
+        {isNewUserModalOpen && (
+          <NewSystemUserModal
+            isOpen
+            onClose={() => setIsNewUserModalOpen(false)}
+            onUserCreated={() => setTick((t) => t + 1)}
+          />
+        )}
 
         {/* Modal: Status & Sincronização Supabase */}
         <SupabaseSyncModal
@@ -302,12 +314,14 @@ export default function App() {
           onClose={() => setIsSupabaseModalOpen(false)}
         />
 
-        {/* Modal: Alterar Minha Senha */}
-        <ChangePasswordModal
-          isOpen={isChangePasswordModalOpen}
-          onClose={() => setIsChangePasswordModalOpen(false)}
-          currentUser={currentUser}
-        />
+        {/* Modal: Alterar Minha Senha — montado apenas quando aberto */}
+        {isChangePasswordModalOpen && (
+          <ChangePasswordModal
+            isOpen
+            onClose={() => setIsChangePasswordModalOpen(false)}
+            currentUser={currentUser}
+          />
+        )}
       </div>
     </ToastProvider>
   );

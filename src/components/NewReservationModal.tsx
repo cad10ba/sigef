@@ -28,18 +28,16 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
   );
   const kits = sigefStorage.getKits();
 
-  const todayStr = new Date().toISOString().split('T')[0];
-
-  const [spaceId, setSpaceId] = useState(preselectedSpaceId || (spaces[0]?.id || ''));
-  const [date, setDate] = useState(preselectedDate || todayStr);
-  const [startTime, setStartTime] = useState(preselectedTime || '07:30');
-  const [endTime, setEndTime] = useState('09:10');
-  const [useType, setUseType] = useState<UseType>('aula');
-  const [sport, setSport] = useState('Voleibol');
+  const [spaceId, setSpaceId] = useState(preselectedSpaceId || '');
+  const [date, setDate] = useState(preselectedDate || '');
+  const [startTime, setStartTime] = useState(preselectedTime || '');
+  const [endTime, setEndTime] = useState('');
+  const [useType, setUseType] = useState<UseType | ''>('');
+  const [sport, setSport] = useState('');
   const [groupOrClass, setGroupOrClass] = useState('');
-  const [teacherId, setTeacherId] = useState(requesters[0]?.id || '');
+  const [teacherId, setTeacherId] = useState('');
   const [customTeacherName, setCustomTeacherName] = useState('');
-  const [participantsCount, setParticipantsCount] = useState(30);
+  const [participantsCount, setParticipantsCount] = useState<number | ''>('');
   const [selectedKitId, setSelectedKitId] = useState('');
   const [recurrence, setRecurrence] = useState<'none' | 'weekly'>('none');
   const [recurrenceUntil, setRecurrenceUntil] = useState('');
@@ -48,11 +46,28 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
   // Conflict warning
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
 
+  // Estado inicial vazio: nada da última reserva permanece no formulário.
+  const resetForm = () => {
+    setSpaceId(preselectedSpaceId || '');
+    setDate(preselectedDate || '');
+    setStartTime(preselectedTime || '');
+    setEndTime('');
+    setUseType('');
+    setSport('');
+    setGroupOrClass('');
+    setTeacherId('');
+    setCustomTeacherName('');
+    setParticipantsCount('');
+    setSelectedKitId('');
+    setRecurrence('none');
+    setRecurrenceUntil('');
+    setNotes('');
+    setConflictWarning(null);
+  };
+
   useEffect(() => {
-    if (preselectedSpaceId) setSpaceId(preselectedSpaceId);
-    if (preselectedDate) setDate(preselectedDate);
-    if (preselectedTime) setStartTime(preselectedTime);
-  }, [preselectedSpaceId, preselectedDate, preselectedTime]);
+    if (isOpen) resetForm();
+  }, [isOpen, preselectedSpaceId, preselectedDate, preselectedTime]);
 
   // Live conflict evaluation
   useEffect(() => {
@@ -82,6 +97,11 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
 
   if (!isOpen) return null;
 
+  const handleCancelar = () => {
+    resetForm();
+    onClose();
+  };
+
   const currentSpace = spaces.find((s) => s.id === spaceId);
   const currentTeacher = requesters.find((r) => r.id === teacherId);
 
@@ -95,6 +115,21 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
 
     if (!spaceId) {
       showToast('Selecione um espaço esportivo.', 'error');
+      return;
+    }
+
+    if (!date) {
+      showToast('Selecione a data do agendamento.', 'error');
+      return;
+    }
+
+    if (!startTime || !endTime) {
+      showToast('Informe o horário de início e término.', 'error');
+      return;
+    }
+
+    if (!useType) {
+      showToast('Selecione o tipo de uso.', 'error');
       return;
     }
 
@@ -142,12 +177,12 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
       date,
       startTime,
       endTime,
-      useType,
+      useType: useType as UseType,
       sport: sport || 'Geral',
       groupOrClass: groupOrClass.trim(),
       teacherId: currentTeacher?.id || 'doc-custom',
       teacherName: teacherNameResolved,
-      participantsCount: Number(participantsCount) || 20,
+      participantsCount: Number(participantsCount) || 0,
       kitIds: selectedKitId ? [selectedKitId] : [],
       materialAllocations,
       recurrence,
@@ -163,6 +198,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
     }
 
     showToast('Reserva de espaço agendada com sucesso!', 'success');
+    resetForm();
     onSaved();
     onClose();
   };
@@ -181,7 +217,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleCancelar}
             className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -208,7 +244,9 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
                   value={spaceId}
                   onChange={(e) => setSpaceId(e.target.value)}
                   className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-emerald-500"
+                  required
                 >
+                  <option value="">Selecione o espaço esportivo</option>
                   {spaces.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name} (Cap. {s.capacity})
@@ -271,7 +309,9 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
                 value={useType}
                 onChange={(e) => setUseType(e.target.value as UseType)}
                 className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-emerald-500"
+                required
               >
+                <option value="">Selecione o tipo</option>
                 <option value="aula">Aula Curricular</option>
                 <option value="treino">Treino / Seleção</option>
                 <option value="extensao">Extensão / Projeto</option>
@@ -320,7 +360,9 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
                   value={teacherId}
                   onChange={(e) => setTeacherId(e.target.value)}
                   className="w-full h-10 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-emerald-500"
+                  required
                 >
+                  <option value="">Selecione o docente/responsável</option>
                   {requesters.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.name} ({r.type === 'docente' ? 'Docente' : r.type === 'estagiario' ? 'Estagiário' : r.type === 'monitor' ? 'Monitor' : 'Servidor'} - {r.registration})
@@ -353,7 +395,10 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
                   min="1"
                   max="500"
                   value={participantsCount}
-                  onChange={(e) => setParticipantsCount(Number(e.target.value))}
+                  onChange={(e) =>
+                    setParticipantsCount(e.target.value === '' ? '' : Number(e.target.value))
+                  }
+                  placeholder="Ex: 30"
                   className="w-full h-10 pl-9 pr-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-emerald-500"
                 />
               </div>
@@ -442,7 +487,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
           <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCancelar}
               className="px-4 py-2 text-xs sm:text-sm text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
             >
               Cancelar
