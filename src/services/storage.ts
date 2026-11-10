@@ -23,6 +23,7 @@ import {
   INITIAL_NOTICES,
   INITIAL_REGULATION,
   DEFAULT_SPORT_CATEGORIES,
+  DEFAULT_TIME_SLOTS,
 } from '../data/initialData';
 import {
   supabase,
@@ -109,6 +110,7 @@ const STORAGE_KEYS = {
   NOTICES: 'sigef_notices_v2_blank',
   REGULATION: 'sigef_regulation_v2_blank',
   CATEGORIES: 'sigef_categories_v2_custom',
+  TIME_SLOTS: 'sigef_time_slots_v1',
   THEME: 'sigef_theme_v2_blank',
 };
 
@@ -137,6 +139,7 @@ const PERSISTED_KEYS = new Set<string>([
   STORAGE_KEYS.NOTICES,
   STORAGE_KEYS.REGULATION,
   STORAGE_KEYS.CATEGORIES,
+  STORAGE_KEYS.TIME_SLOTS,
   STORAGE_KEYS.THEME,
 ]);
 
@@ -157,12 +160,13 @@ function purgeNonPersistedKeys(): void {
   });
 }
 
-// Expurgo total (logout): nenhuma chave sigef_* sobrevive em nenhum storage.
+// Expurgo total (logout): nenhuma chave sigef_* sobrevive em nenhum storage,
+// exceto a configuração da grade de horários (dado operacional, não pessoal).
 function purgeAllSigefKeys(): void {
   memoryStore.clear();
   [localStorage, sessionStorage].forEach((storage) => {
     Object.keys(storage)
-      .filter((key) => key.startsWith('sigef_'))
+      .filter((key) => key.startsWith('sigef_') && key !== STORAGE_KEYS.TIME_SLOTS)
       .forEach((key) => storage.removeItem(key));
   });
 }
@@ -270,6 +274,7 @@ export const sigefStorage = {
     setStoredItem(STORAGE_KEYS.RESERVATIONS, INITIAL_RESERVATIONS);
     setStoredItem(STORAGE_KEYS.NOTICES, INITIAL_NOTICES);
     setStoredItem(STORAGE_KEYS.REGULATION, INITIAL_REGULATION);
+    setStoredItem(STORAGE_KEYS.TIME_SLOTS, DEFAULT_TIME_SLOTS);
     setStoredItem(STORAGE_KEYS.USERS, []);
     sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
     sessionStorage.removeItem(STORAGE_KEYS.AUTH_USER);
@@ -585,6 +590,16 @@ export const sigefStorage = {
     const list = this.getSpaces().filter((s) => s.id !== spaceId);
     setStoredItem(STORAGE_KEYS.SPACES, list);
     safeSupabaseDelete('spaces', spaceId);
+  },
+
+  // Coluna de horários da planilha de ocupação (editável pelo admin).
+  getTimeSlots(): string[] {
+    const stored = getStoredItem<string[]>(STORAGE_KEYS.TIME_SLOTS, DEFAULT_TIME_SLOTS);
+    return stored.length > 0 ? stored : DEFAULT_TIME_SLOTS;
+  },
+
+  saveTimeSlots(slots: string[]): void {
+    setStoredItem(STORAGE_KEYS.TIME_SLOTS, slots);
   },
 
   // Materials & Inventory
