@@ -52,9 +52,41 @@ const AUTH_GENERIC_FAILURE =
 const AUTH_UNAVAILABLE =
   'Não foi possível validar suas credenciais agora. Verifique a conexão e tente novamente.';
 
+// Token opaco emitido por sigef_login_session. Depois do endurecimento do RLS,
+// é ele que autoriza leitura/escrita das tabelas fechadas ao cliente anônimo.
+function getSessionToken(): string | null {
+  try {
+    return sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+  } catch {
+    return null;
+  }
+}
+
+// Escritas passam pela RPC sigef_upsert_rows (SECURITY DEFINER + token de
+// sessão). Sem sessão não há escrita autorizada; nesse caso mantemos a chamada
+// direta para instalações que ainda usem políticas permissivas.
 async function safeSupabaseUpsert(table: string, data: any) {
   try {
-    const { error } = await supabase.from(table).upsert(data);
+    const rows = Array.isArray(data) ? data : [data];
+    if (rows.length === 0) return;
+
+    const token = getSessionToken();
+    if (token) {
+      const { data: res, error } = await supabase.rpc('sigef_upsert_rows', {
+        p_token: token,
+        p_table: table,
+        p_rows: rows,
+      });
+      if (error || res?.success === false) {
+        console.warn(
+          `Supabase upsert into ${table} note:`,
+          error?.message || res?.message || 'falha na sincronização'
+        );
+      }
+      return;
+    }
+
+    const { error } = await supabase.from(table).upsert(rows);
     if (error && error.code !== 'PGRST205') {
       console.warn(`Supabase upsert into ${table} note:`, error.message);
     }
@@ -64,8 +96,30 @@ async function safeSupabaseUpsert(table: string, data: any) {
 }
 
 async function safeSupabaseDelete(table: string, id: string) {
+  await safeSupabaseDeleteMultiple(table, [id]);
+}
+
+async function safeSupabaseDeleteMultiple(table: string, ids: string[]) {
   try {
-    const { error } = await supabase.from(table).delete().eq('id', id);
+    if (!ids || ids.length === 0) return;
+
+    const token = getSessionToken();
+    if (token) {
+      const { data: res, error } = await supabase.rpc('sigef_delete_rows', {
+        p_token: token,
+        p_table: table,
+        p_ids: ids,
+      });
+      if (error || res?.success === false) {
+        console.warn(
+          `Supabase delete from ${table} note:`,
+          error?.message || res?.message || 'falha na sincronização'
+        );
+      }
+      return;
+    }
+
+    const { error } = await supabase.from(table).delete().in('id', ids);
     if (error && error.code !== 'PGRST205') {
       console.warn(`Supabase delete from ${table} note:`, error.message);
     }
@@ -74,20 +128,24 @@ async function safeSupabaseDelete(table: string, id: string) {
   }
 }
 
-async function safeSupabaseDeleteMultiple(table: string, ids: string[]) {
-  try {
-    if (!ids || ids.length === 0) return;
-    const { error } = await supabase.from(table).delete().in('id', ids);
-    if (error && error.code !== 'PGRST205') {
-      console.warn(`Supabase delete multiple from ${table} note:`, error.message);
-    }
-  } catch {
-    // Graceful offline/missing tables fallback
-  }
-}
-
 async function safeSupabaseDeleteAll(table: string) {
   try {
+    const token = getSessionToken();
+    if (token) {
+      const { data: res, error } = await supabase.rpc('sigef_delete_rows', {
+        p_token: token,
+        p_table: table,
+        p_ids: null,
+      });
+      if (error || res?.success === false) {
+        console.warn(
+          `Supabase delete all from ${table} note:`,
+          error?.message || res?.message || 'falha na sincronização'
+        );
+      }
+      return;
+    }
+
     const { error } = await supabase.from(table).delete().neq('id', '');
     if (error && error.code !== 'PGRST205') {
       console.warn(`Supabase delete all from ${table} note:`, error.message);
@@ -559,6 +617,16 @@ export const sigefStorage = {
         roleLabel: res.user.roleLabel || draft.roleLabel,
         createdAt: res.user.createdAt || draft.createdAt,
       };
+
+      // O cadastro não abre sessão sozinho: emitimos o token agora para que a
+      // conta recém-criada já possa sincronizar dados com o Supabase.
+      const { data: sessionData } = await supabase.rpc('sigef_login_session', {
+        p_identifier: cleanEmail,
+        p_password: data.password,
+      });
+      if (sessionData?.session_token) {
+        sessionStorage.setItem(STORAGE_KEYS.SESSION_TOKEN, sessionData.session_token);
+      }
     } catch (err) {
       console.error('Erro inesperado no cadastro:', err);
       return {
@@ -988,6 +1056,9 @@ export const sigefStorage = {
       list.push(reservation);
     }
 
+    // Reservas geradas pela recorrência também precisam ir para a nuvem.
+    const toPersist: Reservation[] = [reservation];
+
     // If recurring weekly until end date, create subsequent reservations
     // (only for new reservations; editing must not duplicate the recurrence)
     if (idx < 0 && reservation.recurrence === 'weekly' && reservation.recurrenceUntil) {
@@ -1008,18 +1079,20 @@ export const sigefStorage = {
           reservation.endTime
         );
         if (!subConflict) {
-          list.push({
+          const recurring: Reservation = {
             ...reservation,
             id: 'res-' + Date.now() + '-' + Math.floor(Math.random() * 10000),
             date: recurringDate,
             recurrence: 'none',
-          });
+          };
+          list.push(recurring);
+          toPersist.push(recurring);
         }
       }
     }
 
     setStoredItem(STORAGE_KEYS.RESERVATIONS, list);
-    safeSupabaseUpsert('reservations', reservationToRow(reservation));
+    safeSupabaseUpsert('reservations', toPersist.map(reservationToRow));
     return { success: true };
   },
 
@@ -1276,10 +1349,15 @@ export const sigefStorage = {
   async syncFromSupabase(): Promise<{ success: boolean; message: string; count: number }> {
     try {
       let count = 0;
+      const token = getSessionToken();
+
+      // O Supabase é a fonte da verdade: cada lista é substituída mesmo quando
+      // o banco está vazio, para que uma exclusão feita na nuvem desapareça do
+      // aplicativo. Se a leitura falhar, a lista local é preservada.
 
       // 1. Spaces
       const { data: spacesData, error: spacesErr } = await supabase.from('spaces').select('*');
-      if (!spacesErr && spacesData && spacesData.length > 0) {
+      if (!spacesErr && spacesData) {
         const spaces = spacesData.map(rowToSpace);
         setStoredItem(STORAGE_KEYS.SPACES, spaces);
         count += spaces.length;
@@ -1287,7 +1365,7 @@ export const sigefStorage = {
 
       // 2. Materials
       const { data: matData, error: matErr } = await supabase.from('materials').select('*');
-      if (!matErr && matData && matData.length > 0) {
+      if (!matErr && matData) {
         const materials = matData.map(rowToMaterial);
         setStoredItem(STORAGE_KEYS.MATERIALS, materials);
         count += materials.length;
@@ -1295,48 +1373,73 @@ export const sigefStorage = {
 
       // 3. Kits
       const { data: kitData, error: kitErr } = await supabase.from('kits').select('*');
-      if (!kitErr && kitData && kitData.length > 0) {
+      if (!kitErr && kitData) {
         const kits = kitData.map(rowToKit);
         setStoredItem(STORAGE_KEYS.KITS, kits);
         count += kits.length;
       }
 
-      // 4. Requesters — via RPC com token da sessão (a tabela é fechada a anon).
-      const reqRes = await this.listRequesters();
-      if (reqRes.success && reqRes.requesters) {
-        count += reqRes.requesters.length;
-      }
-
-      // 5. Loans
-      const { data: loanData, error: loanErr } = await supabase.from('loans').select('*');
-      if (!loanErr && loanData && loanData.length > 0) {
-        const loans = loanData.map(rowToLoan);
-        setStoredItem(STORAGE_KEYS.LOANS, loans);
-        count += loans.length;
-      }
-
-      // 6. Reservations
-      const { data: resData, error: resErr } = await supabase.from('reservations').select('*');
-      if (!resErr && resData && resData.length > 0) {
-        const reservations = resData.map(rowToReservation);
-        setStoredItem(STORAGE_KEYS.RESERVATIONS, reservations);
-        count += reservations.length;
-      }
-
-      // 7. Notices
+      // 4. Notices
       const { data: notData, error: notErr } = await supabase.from('notices').select('*');
-      if (!notErr && notData && notData.length > 0) {
+      if (!notErr && notData) {
         const notices = notData.map(rowToNotice);
         setStoredItem(STORAGE_KEYS.NOTICES, notices);
         count += notices.length;
       }
 
-      // 8. Perfis de usuário (somente colunas de perfil; o hash nunca é lido
+      // 5. Regulation (registro único): só sobrescreve quando existe na nuvem,
+      //    para não apagar o texto padrão de uma base ainda não configurada.
+      const { data: regData, error: regErr } = await supabase
+        .from('regulation')
+        .select('*')
+        .limit(1);
+      const regulationRow = !regErr && regData ? regData[0] : undefined;
+      if (regulationRow) {
+        setStoredItem(STORAGE_KEYS.REGULATION, {
+          rules: Array.isArray(regulationRow.rules) ? regulationRow.rules : [],
+          contact: regulationRow.contact || {},
+        } as CoefRegulation);
+        count += 1;
+      }
+
+      // 6. Requesters — via RPC com token da sessão (a tabela é fechada a anon).
+      const reqRes = await this.listRequesters();
+      if (reqRes.success && reqRes.requesters) {
+        count += reqRes.requesters.length;
+      }
+
+      // 7/8. Loans e reservations também são fechadas a anon: a leitura só
+      //      acontece pela RPC autenticada (migração 006).
+      if (token) {
+        const { data: loanRes, error: loanErr } = await supabase.rpc('sigef_list_loans', {
+          p_token: token,
+        });
+        if (!loanErr && loanRes?.success && Array.isArray(loanRes.loans)) {
+          const loans = loanRes.loans.map(rowToLoan);
+          setStoredItem(STORAGE_KEYS.LOANS, loans);
+          count += loans.length;
+        } else if (loanErr) {
+          console.warn('Falha ao carregar empréstimos do Supabase:', loanErr.message);
+        }
+
+        const { data: resRes, error: resErr } = await supabase.rpc('sigef_list_reservations', {
+          p_token: token,
+        });
+        if (!resErr && resRes?.success && Array.isArray(resRes.reservations)) {
+          const reservations = resRes.reservations.map(rowToReservation);
+          setStoredItem(STORAGE_KEYS.RESERVATIONS, reservations);
+          count += reservations.length;
+        } else if (resErr) {
+          console.warn('Falha ao carregar reservas do Supabase:', resErr.message);
+        }
+      }
+
+      // 9. Perfis de usuário (somente colunas de perfil; o hash nunca é lido
       //    pelo cliente e a lista não é usada para validar login).
       const { data: userData, error: userErr } = await supabase
         .from('app_users')
         .select('id, name, role, registration, email, role_label, created_at');
-      if (!userErr && userData && userData.length > 0) {
+      if (!userErr && userData) {
         const users = userData.map(rowToUser);
         setStoredItem(STORAGE_KEYS.USERS, users);
         count += users.length;
@@ -1360,51 +1463,54 @@ export const sigefStorage = {
 
   async syncToSupabase(): Promise<{ success: boolean; message: string; count: number }> {
     try {
+      const token = getSessionToken();
+      if (!token) {
+        return {
+          success: false,
+          message: 'Entre novamente para exportar os dados com segurança.',
+          count: 0,
+        };
+      }
+
       let count = 0;
-      const spaces = this.getSpaces();
-      if (spaces.length > 0) {
-        const { error } = await supabase.from('spaces').upsert(spaces.map(spaceToRow));
-        if (!error) count += spaces.length;
-      }
+      const failures: string[] = [];
 
-      const materials = this.getMaterials();
-      if (materials.length > 0) {
-        const { error } = await supabase.from('materials').upsert(materials.map(materialToRow));
-        if (!error) count += materials.length;
-      }
+      const pushRows = async (table: string, rows: any[]) => {
+        if (rows.length === 0) return;
+        const { data, error } = await supabase.rpc('sigef_upsert_rows', {
+          p_token: token,
+          p_table: table,
+          p_rows: rows,
+        });
+        if (error || data?.success === false) {
+          failures.push(table);
+          console.warn(
+            `Falha ao exportar ${table} para o Supabase:`,
+            error?.message || data?.message || 'erro desconhecido'
+          );
+          return;
+        }
+        count += rows.length;
+      };
 
-      const kits = this.getKits();
-      if (kits.length > 0) {
-        const { error } = await supabase.from('kits').upsert(kits.map(kitToRow));
-        if (!error) count += kits.length;
-      }
-
-      const requesters = this.getRequesters();
-      if (requesters.length > 0) {
-        const { error } = await supabase.from('requesters').upsert(requesters.map(requesterToRow));
-        if (!error) count += requesters.length;
-      }
-
-      const loans = this.getLoans();
-      if (loans.length > 0) {
-        const { error } = await supabase.from('loans').upsert(loans.map(loanToRow));
-        if (!error) count += loans.length;
-      }
-
-      const reservations = this.getReservations();
-      if (reservations.length > 0) {
-        const { error } = await supabase.from('reservations').upsert(reservations.map(reservationToRow));
-        if (!error) count += reservations.length;
-      }
-
-      const notices = this.getNotices();
-      if (notices.length > 0) {
-        const { error } = await supabase.from('notices').upsert(notices.map(noticeToRow));
-        if (!error) count += notices.length;
-      }
+      await pushRows('spaces', this.getSpaces().map(spaceToRow));
+      await pushRows('materials', this.getMaterials().map(materialToRow));
+      await pushRows('kits', this.getKits().map(kitToRow));
+      await pushRows('requesters', this.getRequesters().map(requesterToRow));
+      await pushRows('loans', this.getLoans().map(loanToRow));
+      await pushRows('reservations', this.getReservations().map(reservationToRow));
+      await pushRows('notices', this.getNotices().map(noticeToRow));
 
       // app_users não é exportado: credenciais só são gravadas pelas RPCs
       // sigef_register_user / sigef_change_password, sempre com hash.
+
+      if (failures.length > 0) {
+        return {
+          success: false,
+          message: `Não foi possível exportar: ${failures.join(', ')}.`,
+          count,
+        };
+      }
 
       return {
         success: true,
