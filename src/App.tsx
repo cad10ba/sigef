@@ -21,6 +21,8 @@ import { LoanReceiptModal } from './components/LoanReceiptModal';
 import { NewMaterialModal } from './components/NewMaterialModal';
 import { NewKitModal } from './components/NewKitModal';
 import { LoginPage } from './components/LoginPage';
+import { ResetPasswordPage } from './components/ResetPasswordPage';
+import { supabase } from './services/supabase';
 import { NewSystemUserModal } from './components/NewSystemUserModal';
 import { SupabaseSyncModal } from './components/SupabaseSyncModal';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
@@ -148,6 +150,25 @@ export default function App() {
     setKitToEdit(kit || null);
     setIsKitModalOpen(true);
   };
+
+  // Link de "Esqueci minha senha": o Supabase volta com type=recovery na URL.
+  const [isRecovery, setIsRecovery] = useState(
+    () => typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
+  );
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') setIsRecovery(true);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  if (isRecovery) {
+    return (
+      <ToastProvider>
+        <ResetPasswordPage onDone={() => setIsRecovery(false)} />
+      </ToastProvider>
+    );
+  }
 
   if (!authUser) {
     return (
