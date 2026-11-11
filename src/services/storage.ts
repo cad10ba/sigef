@@ -121,6 +121,16 @@ async function signInWithSupabaseAuth(
   }
 }
 
+// Avisa a interface quando a nuvem recusa uma gravação (ex.: registro ligado a
+// outro, tombo/matrícula/e-mail duplicado). O ToastProvider escuta este evento.
+function notifySyncError(message: string) {
+  try {
+    window.dispatchEvent(new CustomEvent('sigef-sync-error', { detail: { message } }));
+  } catch {
+    // ambiente sem window
+  }
+}
+
 // Escritas passam pela RPC sigef_upsert_rows (SECURITY DEFINER + token de
 // sessão). Sem sessão não há escrita autorizada; nesse caso mantemos a chamada
 // direta para instalações que ainda usem políticas permissivas.
@@ -147,10 +157,9 @@ async function safeSupabaseUpsert(table: string, data: any) {
           );
           await new Promise((resolve) => setTimeout(resolve, 800));
         } else {
-          console.warn(
-            `Supabase upsert into ${table} note:`,
-            error?.message || res?.message || 'falha na sincronização'
-          );
+          const msg = res?.message || error?.message || 'falha na sincronização';
+          console.warn(`Supabase upsert into ${table} note:`, msg);
+          notifySyncError(`Não foi possível salvar na nuvem: ${msg}`);
         }
       }
       return;
@@ -184,7 +193,12 @@ async function safeSupabaseDeleteMultiple(table: string, ids: string[]) {
           `Supabase delete from ${table} note:`,
           error?.message || res?.message || 'falha na sincronização'
         );
-        enqueueDeletions(table, ids);
+        if (res?.success === false && res?.message) {
+          // Recusa definitiva do banco (ex.: registro em uso): não adianta reenviar.
+          notifySyncError(`Não foi possível excluir: ${res.message}`);
+        } else {
+          enqueueDeletions(table, ids);
+        }
       }
       return;
     }
