@@ -78,8 +78,8 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-      <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-3xl border border-white/15 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs">
+      <div className="sigef-modal relative w-full max-h-[100dvh] sm:max-h-[92vh] overflow-y-auto overscroll-contain max-w-md bg-[#102027] text-slate-100 rounded-3xl border border-white/15 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between pb-3 border-b border-white/10">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
@@ -92,7 +92,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
           </div>
           <button
             onClick={handleClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+            className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -179,7 +179,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
             <span>Sua senha atual é conferida no servidor e a nova é gravada com hash (bcrypt). Nada é comparado no navegador.</span>
           </div>
 
-          <div className="pt-3 border-t border-white/10 flex justify-end gap-2">
+          <div className="sigef-modal-footer pt-3 border-t border-white/10 flex justify-end gap-2">
             <button
               type="button"
               onClick={handleClose}

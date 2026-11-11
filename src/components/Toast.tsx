@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'info';
@@ -25,6 +25,15 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4000);
   }, []);
+
+  useEffect(() => {
+    const onSyncError = (e: Event) => {
+      const msg = (e as CustomEvent<{ message?: string }>).detail?.message;
+      if (msg) showToast(msg, 'error');
+    };
+    window.addEventListener('sigef-sync-error', onSyncError);
+    return () => window.removeEventListener('sigef-sync-error', onSyncError);
+  }, [showToast]);
 
   const removeToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));

@@ -91,7 +91,7 @@ export const ReportsPage: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+          <h2 className="text-lg sm:text-2xl font-bold text-white flex items-center gap-2 leading-tight">
             <BarChart3 className="w-6 h-6 text-emerald-400" />
             <span>Relatórios Gerenciais & Estatísticas</span>
           </h2>
@@ -102,7 +102,7 @@ export const ReportsPage: React.FC = () => {
 
         <button
           onClick={handleExportManagementReport}
-          className="flex items-center gap-1.5 px-4 py-2 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-xl shadow-md shadow-emerald-950/40 transition-all active:scale-[0.98] self-start sm:self-auto"
+          className="flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-11 sm:min-h-0 px-4 py-2 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-xl shadow-md shadow-emerald-950/40 transition-all active:scale-[0.98] self-start sm:self-auto"
         >
           <Download className="w-4 h-4" />
           <span>Exportar Relatório Geral (CSV)</span>
@@ -155,8 +155,8 @@ export const ReportsPage: React.FC = () => {
       {/* Two Columns Grid: Most Loaned Materials & Space Occupancy */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Chart 1: Materiais mais emprestados */}
-        <div className="p-5 rounded-2xl bg-[#102027] border border-white/10 shadow-xl space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-white/10">
+        <div className="p-4 sm:p-5 rounded-2xl bg-[#102027] border border-white/10 shadow-xl space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/10">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-emerald-400" />
               <span>Materiais Mais Emprestados (Volume Acumulado)</span>
@@ -194,8 +194,8 @@ export const ReportsPage: React.FC = () => {
         </div>
 
         {/* Chart 2: Ocupação por Espaço Físico */}
-        <div className="p-5 rounded-2xl bg-[#102027] border border-white/10 shadow-xl space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-white/10">
+        <div className="p-4 sm:p-5 rounded-2xl bg-[#102027] border border-white/10 shadow-xl space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/10">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Calendar className="w-4 h-4 text-sky-400" />
               <span>Ocupação por Espaço Esportivo (Reservas Ativas)</span>
@@ -233,8 +233,8 @@ export const ReportsPage: React.FC = () => {
       </div>
 
       {/* Itens Danificados / Avarias Table */}
-      <div className="p-5 rounded-2xl bg-[#102027] border border-white/10 shadow-xl space-y-3">
-        <div className="flex items-center justify-between pb-3 border-b border-white/10">
+      <div className="p-4 sm:p-5 rounded-2xl bg-[#102027] border border-white/10 shadow-xl space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/10">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-rose-400" />
@@ -246,8 +246,8 @@ export const ReportsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
+        <div className="overflow-x-auto -mx-1 px-1">
+          <table className="w-full min-w-[560px] text-left text-xs text-slate-300">
             <thead className="bg-[#0B1418] text-slate-400 font-bold uppercase text-[10px]">
               <tr>
                 <th className="p-2.5 pl-3">Tombo</th>

@@ -63,9 +63,9 @@ export const Navigation: React.FC<NavigationProps> = ({
 
       {/* Desktop Sidebar & Mobile Drawer */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-[#0B1418] border-r border-white/10 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-72 max-w-[85vw] lg:w-64 lg:max-w-none pb-[env(safe-area-inset-bottom)] lg:pb-0 bg-[#0B1418] border-r border-white/10 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:static lg:z-10`}
+        } lg:static lg:z-10 shrink-0`}
       >
         {/* Drawer Header for Mobile */}
         <div className="flex items-center justify-between p-4 border-b border-white/10 lg:hidden">
@@ -80,7 +80,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           </div>
           <button
             onClick={onCloseSidebar}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
+            className="inline-flex items-center justify-center w-11 h-11 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
             aria-label="Fechar navegação"
           >
             <X className="w-5 h-5" />
@@ -94,7 +94,7 @@ export const Navigation: React.FC<NavigationProps> = ({
               onCloseSidebar();
               onOpenTerminal();
             }}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-[#1B8A4B] hover:from-emerald-500 hover:to-[#22A55B] text-white text-xs font-semibold shadow-lg shadow-emerald-950/50 transition-all active:scale-[0.98]"
+            className="w-full min-h-11 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-[#1B8A4B] hover:from-emerald-500 hover:to-[#22A55B] text-white text-xs font-semibold shadow-lg shadow-emerald-950/50 transition-all active:scale-[0.98]"
           >
             <ScanLine className="w-4 h-4 shrink-0" />
             <span>Terminal Balcão Rápido</span>
@@ -117,7 +117,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                   onNavigate(item.id);
                   onCloseSidebar();
                 }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-colors ${
+                className={`w-full min-h-11 flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                   isActive
                     ? 'bg-emerald-500/15 text-emerald-300 font-semibold border border-emerald-500/30'
                     : 'text-slate-300 hover:bg-white/5 hover:text-white'
@@ -156,10 +156,13 @@ export const Navigation: React.FC<NavigationProps> = ({
       </aside>
 
       {/* Fixed Bottom Navigation for Mobile (Thumb Zone) */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0B1418]/95 dark:bg-[#0B1418]/95 backdrop-blur-md border-t border-white/10 px-2 py-1 flex items-center justify-around h-16">
+      <nav
+        aria-label="Navegação principal"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0B1418]/95 dark:bg-[#0B1418]/95 backdrop-blur-md border-t border-white/10 px-1 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] flex items-stretch justify-around"
+      >
         <button
           onClick={() => onNavigate('inicio')}
-          className={`flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center justify-center flex-1 min-w-0 min-h-14 py-1 text-[10px] leading-tight font-medium transition-colors ${
             activeTab === 'inicio' ? 'text-emerald-400 font-bold' : 'text-slate-400'
           }`}
         >
@@ -169,7 +172,7 @@ export const Navigation: React.FC<NavigationProps> = ({
 
         <button
           onClick={() => onNavigate('espacos')}
-          className={`flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center justify-center flex-1 min-w-0 min-h-14 py-1 text-[10px] leading-tight font-medium transition-colors ${
             activeTab === 'espacos' ? 'text-emerald-400 font-bold' : 'text-slate-400'
           }`}
         >
@@ -179,12 +182,12 @@ export const Navigation: React.FC<NavigationProps> = ({
 
         <button
           onClick={() => onNavigate('emprestimos')}
-          className={`relative flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
+          className={`relative flex flex-col items-center justify-center flex-1 min-w-0 min-h-14 py-1 text-[10px] leading-tight font-medium transition-colors ${
             activeTab === 'emprestimos' ? 'text-emerald-400 font-bold' : 'text-slate-400'
           }`}
         >
           <ClipboardList className="w-5 h-5 mb-0.5" />
-          <span>Empréstimos</span>
+          <span className="truncate max-w-full">Empréstimos</span>
           {overdueCount > 0 && (
             <span className="absolute top-1 right-3 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#0B1418]" />
           )}
@@ -192,7 +195,7 @@ export const Navigation: React.FC<NavigationProps> = ({
 
         <button
           onClick={() => onNavigate('materiais')}
-          className={`flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center justify-center flex-1 min-w-0 min-h-14 py-1 text-[10px] leading-tight font-medium transition-colors ${
             activeTab === 'materiais' ? 'text-emerald-400 font-bold' : 'text-slate-400'
           }`}
         >
@@ -202,14 +205,14 @@ export const Navigation: React.FC<NavigationProps> = ({
 
         <button
           onClick={() => onNavigate('kits')}
-          className={`flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center justify-center flex-1 min-w-0 min-h-14 py-1 text-[10px] leading-tight font-medium transition-colors ${
             activeTab === 'kits' ? 'text-emerald-400 font-bold' : 'text-slate-400'
           }`}
         >
           <Boxes className="w-5 h-5 mb-0.5" />
           <span>Kits</span>
         </button>
-      </div>
+      </nav>
     </>
   );
 };

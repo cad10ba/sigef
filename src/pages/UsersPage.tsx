@@ -227,8 +227,8 @@ export const UsersPage: React.FC<UsersPageProps> = ({
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-            <Users className="w-6 h-6 text-emerald-400" />
+          <h2 className="text-lg sm:text-2xl font-bold text-white flex items-center gap-2 leading-tight">
+            <Users className="w-6 h-6 shrink-0 text-emerald-400" />
             <span>Docentes, Estagiários, Monitores & Alunos</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-400">
@@ -238,7 +238,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
 
         <button
           onClick={handleOpenNewUser}
-          className="flex items-center gap-1.5 px-4 py-2 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-xl shadow-md shadow-emerald-950/40 transition-all active:scale-[0.98] self-start sm:self-auto"
+          className="flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-11 sm:min-h-0 px-4 py-2 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-xl shadow-md shadow-emerald-950/40 transition-all active:scale-[0.98] self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Cadastrar Usuário</span>
@@ -370,7 +370,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
           return (
             <div
               key={req.id}
-              className={`rounded-2xl border p-5 flex flex-col justify-between transition-all ${
+              className={`rounded-2xl border p-4 sm:p-5 flex flex-col justify-between transition-all min-w-0 ${
                 req.isBlocked
                   ? 'bg-rose-950/20 border-rose-500/40'
                   : 'bg-[#102027] border-white/10 hover:border-white/20 shadow-xl'
@@ -378,12 +378,12 @@ export const UsersPage: React.FC<UsersPageProps> = ({
             >
               <div>
                 <div className="flex items-start justify-between gap-2 pb-3 border-b border-white/10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#0B1418] border border-white/10 text-emerald-400 font-bold flex items-center justify-center text-sm">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 shrink-0 rounded-xl bg-[#0B1418] border border-white/10 text-emerald-400 font-bold flex items-center justify-center text-sm">
                       {req.name.split(' ').map((p) => p[0]).slice(0, 2).join('')}
                     </div>
-                    <div>
-                      <h3 className="font-bold text-sm text-white">{req.name}</h3>
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-sm text-white break-words">{req.name}</h3>
                       <span className="text-[11px] font-mono text-slate-400">
                         {req.registration}
                       </span>
@@ -391,7 +391,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                   </div>
 
                   <span
-                    className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
+                    className={`shrink-0 text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
                       req.isBlocked
                         ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
                         : badge.color
@@ -449,10 +449,10 @@ export const UsersPage: React.FC<UsersPageProps> = ({
               </div>
 
               {/* Card Footer Actions */}
-              <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+              <div className="mt-4 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
                 <button
                   onClick={() => setSelectedUserDetail(req)}
-                  className="text-xs font-semibold text-sky-400 hover:text-sky-300"
+                  className="min-h-10 sm:min-h-0 text-xs font-semibold text-sky-400 hover:text-sky-300"
                 >
                   Ver Histórico ({userLoans.length})
                 </button>
@@ -460,7 +460,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => handleOpenEditUser(req)}
-                    className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+                    className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
                     title="Editar Cadastro"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
@@ -469,7 +469,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                   {userRole === 'admin' && (
                     <button
                       onClick={() => handleDeleteUser(req.id, req.name)}
-                      className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5 transition-colors"
+                      className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5 transition-colors"
                       title="Excluir Usuário"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -479,7 +479,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                   {!req.isBlocked && (
                     <button
                       onClick={() => onOpenNewLoanWithRequester(req.id)}
-                      className="px-2.5 py-1.5 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+                      className="min-h-10 sm:min-h-0 px-3 py-1.5 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
                     >
                       Emprestar
                     </button>
@@ -509,8 +509,8 @@ export const UsersPage: React.FC<UsersPageProps> = ({
 
       {/* User Details & History Modal */}
       {selectedUserDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative w-full max-w-2xl bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs">
+          <div className="sigef-modal relative w-full max-h-[100dvh] sm:max-h-[92vh] overflow-y-auto overscroll-contain max-w-2xl bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -523,7 +523,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
               </div>
               <button
                 onClick={() => setSelectedUserDetail(null)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
+                className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -629,7 +629,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
               )}
             </div>
 
-            <div className="pt-4 mt-4 border-t border-white/10 flex justify-end">
+            <div className="sigef-modal-footer pt-4 mt-4 border-t border-white/10 flex justify-end">
               <button
                 onClick={() => setSelectedUserDetail(null)}
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold"
@@ -643,8 +643,8 @@ export const UsersPage: React.FC<UsersPageProps> = ({
 
       {/* User Create/Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs">
+          <div className="sigef-modal relative w-full max-h-[100dvh] sm:max-h-[92vh] overflow-y-auto overscroll-contain max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
             <h3 className="text-base font-bold text-white mb-1">
               {editingUser ? 'Editar Cadastro de Usuário' : 'Novo Cadastro no SIGEF COEF'}
             </h3>
@@ -665,7 +665,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-300 mb-1">Tipo de Vínculo</label>
                   <select
@@ -817,7 +817,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-white/10 flex justify-end gap-2">
+              <div className="sigef-modal-footer pt-3 border-t border-white/10 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => {
