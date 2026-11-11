@@ -828,6 +828,51 @@ export const sigefStorage = {
     };
   },
 
+  async requestPasswordReset(identifier: string): Promise<{ success: boolean; message: string }> {
+    const clean = identifier.trim();
+    // Mensagem sempre igual: não revela se a conta existe.
+    const generic = 'Se houver uma conta com esse identificador, enviamos um link para o e-mail cadastrado. Confira também o spam.';
+    if (!clean) {
+      return { success: false, message: 'Digite seu e-mail ou matrícula/SIAPE no campo de identificador.' };
+    }
+    try {
+      let email = clean.includes('@') ? clean.toLowerCase() : '';
+      if (!email) {
+        const { data } = await supabase.rpc('sigef_resolve_identifier', { p_identifier: clean });
+        email = data?.success && data.email ? String(data.email) : '';
+      }
+      if (email) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + '/',
+        });
+        if (error && /rate|limit/i.test(error.message)) {
+          return { success: false, message: 'Muitos pedidos seguidos. Aguarde alguns minutos e tente de novo.' };
+        }
+      }
+      return { success: true, message: generic };
+    } catch {
+      return { success: false, message: AUTH_UNAVAILABLE };
+    }
+  },
+
+  async completePasswordReset(newPassword: string): Promise<{ success: boolean; message: string }> {
+    const pass = newPassword.trim();
+    if (pass.length < 8) {
+      return { success: false, message: 'A nova senha deve ter pelo menos 8 caracteres.' };
+    }
+    try {
+      const { error } = await supabase.auth.updateUser({ password: pass });
+      if (error) {
+        return { success: false, message: 'O link expirou ou já foi usado. Peça um novo na tela de login.' };
+      }
+      await supabase.rpc('sigef_set_own_password_hash', { p_new_password: pass });
+      await supabase.auth.signOut().catch(() => {});
+      return { success: true, message: 'Senha redefinida! Entre com a nova senha.' };
+    } catch {
+      return { success: false, message: AUTH_UNAVAILABLE };
+    }
+  },
+
   logout(): void {
     void supabase.auth.signOut().catch(() => {});
     const token = getSessionToken();
