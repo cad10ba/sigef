@@ -17,8 +17,8 @@ export const LoanReceiptModal: React.FC<LoanReceiptModalProps> = ({ loan, isOpen
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-[#102027] text-slate-100 rounded-2xl border border-slate-700/60 p-5 sm:p-7 shadow-2xl my-6">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-[#102027] text-slate-100 rounded-2xl border border-slate-700/60 p-5 sm:p-7 shadow-2xl my-auto">
         {/* Controls - hidden on print */}
         <div className="no-print flex items-center justify-between pb-4 border-b border-slate-800">
           <div className="flex items-center gap-2">

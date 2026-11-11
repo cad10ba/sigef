@@ -92,7 +92,8 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
           </div>
           <button
             onClick={handleClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+            aria-label="Fechar"
+            className="p-2 -m-1 text-slate-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
