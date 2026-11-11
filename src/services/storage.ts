@@ -87,11 +87,14 @@ async function signInWithSupabaseAuth(
     const clean = identifier.trim();
     let email = clean.includes('@') ? clean.toLowerCase() : '';
 
-    const { data: resolved } = await supabase.rpc('sigef_resolve_identifier', {
-      p_identifier: clean,
-    });
-    if (resolved?.success && resolved.email) {
-      email = String(resolved.email).toLowerCase();
+    if (!email) {
+      // Matrícula/SIAPE: o servidor devolve só o e-mail, nunca o nome.
+      const { data: resolved } = await supabase.rpc('sigef_resolve_identifier', {
+        p_identifier: clean,
+      });
+      if (resolved?.success && resolved.email) {
+        email = String(resolved.email).toLowerCase();
+      }
     }
     if (!email) return null;
 
@@ -153,10 +156,9 @@ async function safeSupabaseUpsert(table: string, data: any) {
       return;
     }
 
-    const { error } = await supabase.from(table).upsert(rows);
-    if (error && error.code !== 'PGRST205') {
-      console.warn(`Supabase upsert into ${table} note:`, error.message);
-    }
+    // Sem sessão do app não há escrita na nuvem: a gravação direta com a
+    // chave pública foi removida (a RLS só aceita a equipe autenticada).
+    console.warn(`Supabase upsert into ${table} ignorado: sem sessão ativa.`);
   } catch {
     // Graceful offline/missing tables fallback
   }
@@ -189,11 +191,6 @@ async function safeSupabaseDeleteMultiple(table: string, ids: string[]) {
 
     // Sem sessão a nuvem recusa a exclusão: guarda para reenviar depois.
     enqueueDeletions(table, ids);
-
-    const { error } = await supabase.from(table).delete().in('id', ids);
-    if (error && error.code !== 'PGRST205') {
-      console.warn(`Supabase delete from ${table} note:`, error.message);
-    }
   } catch {
     // Falha de rede: a exclusão fica pendente e é reenviada na próxima sessão.
     enqueueDeletions(table, ids);
@@ -309,10 +306,8 @@ async function safeSupabaseDeleteAll(table: string) {
       return;
     }
 
-    const { error } = await supabase.from(table).delete().neq('id', '');
-    if (error && error.code !== 'PGRST205') {
-      console.warn(`Supabase delete all from ${table} note:`, error.message);
-    }
+    // Sem sessão do app, "apagar tudo" nunca vai para a nuvem.
+    console.warn(`Supabase delete all from ${table} ignorado: sem sessão ativa.`);
   } catch {
     // Graceful offline/missing tables fallback
   }
@@ -540,13 +535,15 @@ export const sigefStorage = {
     if (stored) return stored;
     const users = this.getUsers();
     if (users.length > 0) return users[0];
+    // Sem usuário: perfil visitante com o menor privilégio. Nunca assumir
+    // admin no navegador; a tela de login aparece porque authUser é nulo.
     return {
-      id: 'temp-admin',
-      name: 'Administrador',
-      role: 'admin',
-      registration: 'SIAPE',
-      email: 'admin@ifba.edu.br',
-      roleLabel: 'Coordenação de Educação Física (Administrador)',
+      id: 'visitante',
+      name: 'Visitante',
+      role: 'estagiario',
+      registration: '',
+      email: '',
+      roleLabel: 'Sem sessão',
     };
   },
 
