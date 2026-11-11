@@ -33,7 +33,10 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
   const reservations = sigefStorage.getReservations();
 
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'semana' | 'dia'>('semana');
+  // No celular a grade semanal (7 colunas) não cabe: começa na Visão Dia.
+  const [viewMode, setViewMode] = useState<'semana' | 'dia'>(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 'dia' : 'semana'
+  );
 
   // Reservation Edit/Delete Modal state
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
@@ -265,8 +268,8 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-            <CalendarDays className="w-6 h-6 text-emerald-400" />
+          <h2 className="text-lg sm:text-2xl font-bold text-white flex items-center gap-2 leading-tight">
+            <CalendarDays className="w-6 h-6 shrink-0 text-emerald-400" />
             <span>Gestão dos Espaços & Mapa de Ocupação</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-400">
@@ -274,11 +277,11 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto self-start sm:self-auto">
           {userRole === 'admin' && (
             <button
               onClick={handleOpenNewSpace}
-              className="px-3.5 py-2 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 text-xs font-semibold rounded-xl transition-colors"
+              className="shrink-0 min-h-11 sm:min-h-0 px-3.5 py-2 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 text-xs font-semibold rounded-xl transition-colors"
             >
               + Novo Espaço
             </button>
@@ -286,7 +289,7 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
 
           <button
             onClick={() => onOpenNewReservation()}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-xl shadow-md shadow-emerald-950/40 transition-all active:scale-[0.98]"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-11 sm:min-h-0 px-4 py-2 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-xl shadow-md shadow-emerald-950/40 transition-all active:scale-[0.98]"
           >
             <Plus className="w-4 h-4" />
             <span>Nova Reserva</span>
@@ -325,18 +328,18 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
               }`}
             >
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h4 className="font-bold text-xs sm:text-sm text-white">{s.name}</h4>
+                <div className="min-w-0">
+                  <h4 className="font-bold text-sm text-white break-words">{s.name}</h4>
                   <p className="text-[11px] text-slate-400">Capacidade: {s.capacity} pessoas</p>
                 </div>
                 <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${badge.bgClass} ${badge.textClass} ${badge.borderClass}`}
+                  className={`shrink-0 whitespace-nowrap text-[10px] font-bold px-2 py-0.5 rounded-full border ${badge.bgClass} ${badge.textClass} ${badge.borderClass}`}
                 >
                   {badge.label}
                 </span>
               </div>
 
-              <div className="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
+              <div className="mt-2 text-[11px] text-slate-400 flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5">
                 <span>Horário: {s.openHours}</span>
                 <span className="font-mono text-emerald-400">
                   {reservations.filter((r) => r.spaceId === s.id && r.date === weekDays[0]?.dateStr).length} reservas esta semana
@@ -346,7 +349,7 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
               <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between">
                 <button
                   onClick={() => setSelectedSpaceId(isSelected ? 'all' : s.id)}
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors ${
+                  className={`text-xs font-semibold px-3 min-h-10 sm:min-h-0 sm:py-1 rounded-lg transition-colors ${
                     isSelected
                       ? 'bg-emerald-500 text-white'
                       : 'bg-white/5 text-slate-300 hover:text-white'
@@ -358,16 +361,18 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => handleOpenMaintenance(s)}
-                    className="p-1.5 text-slate-400 hover:text-amber-400 rounded-lg hover:bg-white/5 transition-colors"
+                    className="inline-flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto sm:p-1.5 text-slate-400 hover:text-amber-400 rounded-lg hover:bg-white/5 transition-colors"
                     title="Ordem de Serviço / Manutenção"
+                    aria-label="Ordem de Serviço / Manutenção"
                   >
                     <Wrench className="w-4 h-4" />
                   </button>
                   {userRole === 'admin' && (
                     <button
                       onClick={() => handleOpenEditSpace(s)}
-                      className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+                      className="inline-flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto sm:p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
                       title="Editar Espaço"
+                      aria-label="Editar Espaço"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
@@ -380,24 +385,24 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
       </div>
 
       {/* Calendar Controls & Filter Header */}
-      <div className="p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="p-3 sm:p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
         {/* Week navigation */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between md:justify-start gap-3">
           <button
             onClick={handlePrevWeek}
-            className="p-2 rounded-xl bg-[#0B1418] border border-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-colors"
+            className="inline-flex items-center justify-center w-11 h-11 sm:w-auto sm:h-auto sm:p-2 shrink-0 rounded-xl bg-[#0B1418] border border-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-colors"
             title="Semana anterior"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          <span className="text-xs sm:text-sm font-semibold text-white">
+          <span className="text-xs sm:text-sm font-semibold text-white text-center">
             Semana: {formatDateBR(weekDays[0]?.dateStr)} até {formatDateBR(weekDays[5]?.dateStr)}
           </span>
 
           <button
             onClick={handleNextWeek}
-            className="p-2 rounded-xl bg-[#0B1418] border border-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-colors"
+            className="inline-flex items-center justify-center w-11 h-11 sm:w-auto sm:h-auto sm:p-2 shrink-0 rounded-xl bg-[#0B1418] border border-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-colors"
             title="Próxima semana"
           >
             <ChevronRight className="w-4 h-4" />
@@ -405,14 +410,14 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
         </div>
 
         {/* View Switcher & Space Filter */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="grid grid-cols-1 sm:flex sm:items-center gap-3 sm:flex-wrap">
           {/* Space filter dropdown */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <Filter className="w-4 h-4 text-slate-400 shrink-0" />
             <select
               value={selectedSpaceId}
               onChange={(e) => setSelectedSpaceId(e.target.value)}
-              className="h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs text-slate-200 focus:outline-none"
+              className="w-full sm:w-auto min-w-0 h-11 sm:h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs text-slate-200 focus:outline-none"
             >
               <option value="all">Todos os Espaços</option>
               {spaces.map((s) => (
@@ -426,7 +431,7 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
           {userRole === 'admin' && (
             <button
               onClick={handleOpenTimeSlots}
-              className="flex items-center gap-1.5 h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs font-semibold text-slate-200 hover:text-white hover:border-emerald-500/50 transition-colors"
+              className="flex items-center justify-center gap-1.5 h-11 sm:h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs font-semibold text-slate-200 hover:text-white hover:border-emerald-500/50 transition-colors"
               title="Editar a coluna de horários da planilha"
             >
               <Clock className="w-4 h-4 text-emerald-400" />
@@ -435,10 +440,10 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
           )}
 
           {/* Mode Switcher */}
-          <div className="flex items-center bg-[#0B1418] p-1 rounded-xl border border-white/10">
+          <div className="grid grid-cols-2 sm:flex sm:items-center bg-[#0B1418] p-1 rounded-xl border border-white/10">
             <button
               onClick={() => setViewMode('semana')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              className={`px-3 min-h-10 sm:min-h-0 sm:py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                 viewMode === 'semana'
                   ? 'bg-emerald-600 text-white shadow'
                   : 'text-slate-400 hover:text-white'
@@ -448,7 +453,7 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
             </button>
             <button
               onClick={() => setViewMode('dia')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              className={`px-3 min-h-10 sm:min-h-0 sm:py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                 viewMode === 'dia'
                   ? 'bg-emerald-600 text-white shadow'
                   : 'text-slate-400 hover:text-white'
@@ -485,11 +490,13 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
 
       {/* WEEKLY GRID VIEW */}
       {viewMode === 'semana' ? (
-        <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#102027] shadow-xl">
-          <div className="min-w-[850px]">
+        <div className="space-y-1.5">
+        <p className="md:hidden text-[11px] text-slate-400 px-1">Deslize a grade para o lado para ver todos os dias.</p>
+        <div className="overflow-x-auto overscroll-x-contain rounded-2xl border border-white/10 bg-[#102027] shadow-xl">
+          <div className="min-w-[760px] md:min-w-[850px]">
             {/* Table Header: Days of the week */}
             <div className="grid grid-cols-7 border-b border-white/10 bg-[#0B1418] text-xs font-bold text-slate-300">
-              <div className="p-3 text-center border-r border-white/5 text-slate-400">Horário</div>
+              <div className="sticky left-0 z-10 p-3 text-center border-r border-white/5 text-slate-400 bg-[#0B1418]">Horário</div>
               {weekDays.map((w) => (
                 <div key={w.dateStr} className="p-3 text-center border-r border-white/5">
                   <span className="block uppercase text-[10px] text-emerald-400">{w.dayName}</span>
@@ -503,7 +510,7 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
               {timeSlots.map((time) => (
                 <div key={time} className="grid grid-cols-7 hover:bg-white/[0.01] transition-colors">
                   {/* Time label column */}
-                  <div className="p-3 text-center font-mono font-semibold text-slate-400 border-r border-white/5 bg-[#0B1418]/60 flex items-center justify-center">
+                  <div className="sticky left-0 z-10 p-3 text-center font-mono font-semibold text-slate-400 border-r border-white/5 bg-[#0B1418] flex items-center justify-center">
                     {time}
                   </div>
 
@@ -564,6 +571,7 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
             </div>
           </div>
         </div>
+        </div>
       ) : (
         /* DAILY VIEW */
         <div className="space-y-4">
@@ -572,7 +580,7 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
               <button
                 key={w.dateStr}
                 onClick={() => setSelectedSingleDay(w.dateStr)}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold shrink-0 transition-colors ${
+                className={`px-4 py-2 min-h-11 rounded-xl text-xs font-semibold shrink-0 transition-colors ${
                   selectedSingleDay === w.dateStr
                     ? 'bg-emerald-600 text-white shadow'
                     : 'bg-[#102027] text-slate-300 hover:bg-[#102027]/80 border border-white/10'
@@ -584,17 +592,17 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
             ))}
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-[#102027] p-4 divide-y divide-white/5 space-y-3">
+          <div className="rounded-2xl border border-white/10 bg-[#102027] p-3 sm:p-4 divide-y divide-white/5 space-y-3">
             {timeSlots.map((time) => {
               const matches = getSlotReservations(selectedSingleDay, time, selectedSpaceId);
 
               return (
-                <div key={time} className="pt-3 first:pt-0 flex items-start gap-4">
-                  <div className="w-16 font-mono font-bold text-slate-400 text-xs text-center py-2 bg-[#0B1418] rounded-lg border border-white/5">
+                <div key={time} className="pt-3 first:pt-0 flex items-start gap-2.5 sm:gap-4">
+                  <div className="w-14 sm:w-16 shrink-0 font-mono font-bold text-slate-400 text-xs text-center py-2 bg-[#0B1418] rounded-lg border border-white/5">
                     {time}
                   </div>
 
-                  <div className="flex-1 space-y-2">
+                  <div className="flex-1 min-w-0 space-y-2">
                     {matches.length > 0 ? (
                       matches.map((res) => {
                         const badge = getUseTypeBadge(res.useType);
@@ -605,8 +613,8 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                             className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer hover:ring-1 hover:ring-white/40 transition-shadow ${badge.colorClass}`}
                             title="Clique para editar ou excluir esta reserva"
                           >
-                            <div>
-                              <div className="flex items-center gap-2">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                 <span className="font-bold text-sm text-white">{res.sport}</span>
                                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/10 font-bold">
                                   {res.startTime} às {res.endTime}
@@ -641,10 +649,10 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                             time
                           )
                         }
-                        className="p-2.5 rounded-xl border border-dashed border-white/10 text-xs text-slate-500 hover:text-emerald-400 hover:border-emerald-500/40 hover:bg-emerald-500/5 cursor-pointer flex items-center justify-between transition-colors"
+                        className="p-2.5 min-h-11 gap-2 rounded-xl border border-dashed border-white/10 text-xs text-slate-500 hover:text-emerald-400 hover:border-emerald-500/40 hover:bg-emerald-500/5 cursor-pointer flex items-center justify-between transition-colors"
                       >
                         <span>Horário livre. Clique para agendar uma reserva neste bloco.</span>
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-4 h-4 shrink-0" />
                       </div>
                     )}
                   </div>
@@ -657,8 +665,8 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
 
       {/* Time Slots Edit Modal */}
       {isTimeSlotsModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs">
+          <div className="sigef-modal relative w-full max-h-[100dvh] sm:max-h-[92vh] overflow-y-auto overscroll-contain max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
             <h3 className="text-base font-bold text-white flex items-center gap-2 mb-1">
               <Clock className="w-5 h-5 text-emerald-400" />
               <span>Editar Coluna de Horários</span>
@@ -703,7 +711,7 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                 + Adicionar horário
               </button>
 
-              <div className="pt-3 border-t border-white/10 flex justify-end gap-2">
+              <div className="sigef-modal-footer pt-3 border-t border-white/10 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsTimeSlotsModalOpen(false)}
@@ -725,8 +733,8 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
 
       {/* Maintenance OS Modal */}
       {isMaintenanceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs">
+          <div className="sigef-modal relative w-full max-h-[100dvh] sm:max-h-[92vh] overflow-y-auto overscroll-contain max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
             <h3 className="text-base font-bold text-white flex items-center gap-2 mb-1">
               <Wrench className="w-5 h-5 text-amber-400" />
               <span>Controle de Manutenção do Espaço</span>
@@ -770,7 +778,7 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                 />
               </div>
 
-              <div className="pt-3 border-t border-white/10 flex justify-end gap-2">
+              <div className="sigef-modal-footer pt-3 border-t border-white/10 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsMaintenanceModalOpen(false)}
@@ -801,8 +809,8 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
 
       {/* Space Create/Edit Modal */}
       {isSpaceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative w-full max-w-lg bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs">
+          <div className="sigef-modal relative w-full max-h-[100dvh] sm:max-h-[92vh] overflow-y-auto overscroll-contain max-w-lg bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
             <h3 className="text-base font-bold text-white mb-1">
               {editingSpace ? 'Editar Espaço Esportivo' : 'Cadastrar Novo Espaço Físico'}
             </h3>
@@ -823,7 +831,7 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-300 mb-1">Tipo de Espaço</label>
                   <select
@@ -896,7 +904,7 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
                 />
               </div>
 
-              <div className="pt-3 border-t border-white/10 flex justify-end gap-2">
+              <div className="sigef-modal-footer pt-3 border-t border-white/10 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsSpaceModalOpen(false)}

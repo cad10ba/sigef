@@ -229,11 +229,11 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-white/10">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-              <Dumbbell className="w-6 h-6 text-emerald-400" />
+            <h2 className="text-lg sm:text-2xl font-bold text-white flex items-center gap-2 leading-tight">
+              <Dumbbell className="w-6 h-6 shrink-0 text-emerald-400" />
               <span>Acervo Patrimonial & Materiais Esportivos</span>
             </h2>
-            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+            <span className="shrink-0 whitespace-nowrap text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
               {materials.length} {materials.length === 1 ? 'item' : 'itens'}
             </span>
           </div>
@@ -243,11 +243,11 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
         </div>
 
         {/* Action Buttons Toolbar */}
-        <div className="flex items-center gap-2 self-start lg:self-auto flex-wrap">
+        <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center self-start lg:self-auto sm:flex-wrap">
           {/* Import Button */}
           <button
             onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-semibold rounded-xl transition-all shadow-sm active:scale-[0.98]"
+            className="flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-11 sm:min-h-0 px-3 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-semibold rounded-xl transition-all shadow-sm active:scale-[0.98]"
             title="Importar materiais via planilha Excel (.xlsx) ou CSV com modelo oficial"
           >
             <Upload className="w-4 h-4" />
@@ -255,13 +255,13 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
           </button>
 
           {/* Export Dropdown */}
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <button
               onClick={() => {
                 setShowExportMenu(!showExportMenu);
                 setShowTemplateMenu(false);
               }}
-              className="flex items-center gap-1.5 px-3 py-2 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 text-xs font-semibold rounded-xl transition-colors"
+              className="flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-11 sm:min-h-0 px-3 py-2 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 text-xs font-semibold rounded-xl transition-colors"
               title="Exportar inventário"
             >
               <Download className="w-4 h-4 text-slate-400" />
@@ -270,17 +270,17 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
             </button>
 
             {showExportMenu && (
-              <div className="absolute right-0 mt-1.5 w-48 rounded-2xl bg-[#102027] border border-white/15 shadow-2xl py-1.5 z-40 text-xs">
+              <div className="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-[calc(100vw-1.5rem)] max-w-56 sm:w-48 rounded-2xl bg-[#102027] border border-white/15 shadow-2xl py-1.5 z-40 text-xs">
                 <button
                   onClick={handleExportExcel}
-                  className="w-full px-3.5 py-2 text-left text-slate-200 hover:bg-white/5 flex items-center gap-2 hover:text-emerald-400 transition-colors"
+                  className="w-full min-h-11 sm:min-h-0 px-3.5 py-2 text-left text-slate-200 hover:bg-white/5 flex items-center gap-2 hover:text-emerald-400 transition-colors"
                 >
                   <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
                   <span>Exportar Excel (.xlsx)</span>
                 </button>
                 <button
                   onClick={handleExportCSV}
-                  className="w-full px-3.5 py-2 text-left text-slate-200 hover:bg-white/5 flex items-center gap-2 hover:text-sky-400 transition-colors"
+                  className="w-full min-h-11 sm:min-h-0 px-3.5 py-2 text-left text-slate-200 hover:bg-white/5 flex items-center gap-2 hover:text-sky-400 transition-colors"
                 >
                   <Download className="w-4 h-4 text-sky-400" />
                   <span>Exportar CSV</span>
@@ -290,13 +290,13 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
           </div>
 
           {/* Template Download Dropdown */}
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <button
               onClick={() => {
                 setShowTemplateMenu(!showTemplateMenu);
                 setShowExportMenu(false);
               }}
-              className="flex items-center gap-1.5 px-3 py-2 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 text-xs font-semibold rounded-xl transition-colors"
+              className="flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-11 sm:min-h-0 px-3 py-2 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 text-xs font-semibold rounded-xl transition-colors"
               title="Baixar planilha modelo de cadastro"
             >
               <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
@@ -305,14 +305,14 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
             </button>
 
             {showTemplateMenu && (
-              <div className="absolute right-0 mt-1.5 w-52 rounded-2xl bg-[#102027] border border-white/15 shadow-2xl py-1.5 z-40 text-xs">
+              <div className="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-[calc(100vw-1.5rem)] max-w-56 sm:w-52 rounded-2xl bg-[#102027] border border-white/15 shadow-2xl py-1.5 z-40 text-xs">
                 <button
                   onClick={() => {
                     downloadMaterialsExcelTemplate();
                     setShowTemplateMenu(false);
                     showToast('Modelo Excel (.xlsx) baixado com sucesso!', 'success');
                   }}
-                  className="w-full px-3.5 py-2 text-left text-slate-200 hover:bg-white/5 flex items-center gap-2 hover:text-emerald-400 transition-colors"
+                  className="w-full min-h-11 sm:min-h-0 px-3.5 py-2 text-left text-slate-200 hover:bg-white/5 flex items-center gap-2 hover:text-emerald-400 transition-colors"
                 >
                   <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
                   <span>Modelo Excel (.xlsx)</span>
@@ -323,7 +323,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
                     setShowTemplateMenu(false);
                     showToast('Modelo CSV baixado com sucesso!', 'success');
                   }}
-                  className="w-full px-3.5 py-2 text-left text-slate-200 hover:bg-white/5 flex items-center gap-2 hover:text-sky-400 transition-colors"
+                  className="w-full min-h-11 sm:min-h-0 px-3.5 py-2 text-left text-slate-200 hover:bg-white/5 flex items-center gap-2 hover:text-sky-400 transition-colors"
                 >
                   <Download className="w-4 h-4 text-sky-400" />
                   <span>Modelo CSV</span>
@@ -336,7 +336,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
           {materials.length > 0 && (
             <button
               onClick={() => setIsClearAllModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-semibold rounded-xl transition-all shadow-sm active:scale-[0.98]"
+              className="flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-11 sm:min-h-0 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-semibold rounded-xl transition-all shadow-sm active:scale-[0.98]"
               title="Excluir todos os materiais do acervo de uma vez"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -347,7 +347,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
           {/* New Material Button */}
           <button
             onClick={() => onOpenNewMaterial()}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-xl shadow-md shadow-emerald-950/40 transition-all active:scale-[0.98]"
+            className="col-span-2 flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-11 sm:min-h-0 px-4 py-2 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-xl shadow-md shadow-emerald-950/40 transition-all active:scale-[0.98]"
           >
             <Plus className="w-4 h-4" />
             <span>Cadastrar Material</span>
@@ -365,7 +365,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por nome, tombo, armário..."
-            className="w-full h-9 pl-9 pr-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+            className="w-full h-11 sm:h-9 pl-9 pr-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
           />
           {search && (
             <button
@@ -378,12 +378,12 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-2.5 w-full md:w-auto flex-wrap">
+        <div className="grid grid-cols-1 sm:flex sm:items-center gap-2.5 w-full md:w-auto sm:flex-wrap">
           {/* Category Filter */}
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs text-slate-200 focus:outline-none"
+            className="w-full sm:w-auto h-11 sm:h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs text-slate-200 focus:outline-none"
           >
             <option value="all">Todas as Modalidades ({sigefStorage.getCategories().length})</option>
             {sigefStorage.getCategories().map((c) => (
@@ -397,7 +397,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
           <select
             value={selectedState}
             onChange={(e) => setSelectedState(e.target.value)}
-            className="h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs text-slate-200 focus:outline-none"
+            className="w-full sm:w-auto h-11 sm:h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs text-slate-200 focus:outline-none"
           >
             <option value="all">Todos os Estados</option>
             <option value="novo">Novo</option>
@@ -411,7 +411,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs text-slate-200 focus:outline-none"
+            className="w-full sm:w-auto h-11 sm:h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs text-slate-200 focus:outline-none"
           >
             <option value="name">Ordenar por Nome</option>
             <option value="qty">Ordenar por Quantidade</option>
@@ -422,7 +422,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
 
       {/* Batch Action Bar (when items are selected) */}
       {selectedIds.size > 0 && (
-        <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-emerald-500/30 flex items-center justify-between gap-3 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150">
           <div className="flex items-center gap-2.5">
             <span className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold flex items-center justify-center text-xs">
               {selectedIds.size}
@@ -432,7 +432,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setSelectedIds(new Set())}
               className="px-3 py-1.5 text-xs text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
@@ -451,8 +451,143 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
         </div>
       )}
 
-      {/* Materials Table */}
-      <div className="rounded-2xl border border-white/10 bg-[#102027] overflow-hidden shadow-xl">
+      {/* Materials — cartões no celular/tablet */}
+      <div className="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-3">
+        {filteredMaterials.length > 0 && (
+          <label className="md:col-span-2 flex items-center gap-3 px-1 min-h-11 text-xs text-slate-300 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={filteredMaterials.length > 0 && selectedIds.size === filteredMaterials.length}
+              onChange={handleToggleSelectAll}
+              className="rounded bg-[#0B1418] border-white/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+            />
+            <span>Selecionar todos os materiais listados</span>
+          </label>
+        )}
+
+        {filteredMaterials.map((mat) => {
+          const badge = getConservationBadge(mat.conservationState);
+          const isLowStock = mat.availableQuantity <= mat.minStockAlert;
+          const isDamaged = mat.conservationState === 'danificado';
+          const isSelected = selectedIds.has(mat.id);
+
+          return (
+            <div
+              key={mat.id}
+              className={`p-4 rounded-2xl border border-white/10 ${
+                isSelected
+                  ? 'bg-emerald-950/20'
+                  : isDamaged
+                  ? 'bg-rose-950/20'
+                  : isLowStock
+                  ? 'bg-amber-950/15'
+                  : 'bg-[#102027]'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => handleToggleSelectItem(mat.id)}
+                  className="mt-0.5 shrink-0 rounded bg-[#0B1418] border-white/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                  aria-label={`Selecionar ${mat.name}`}
+                />
+                <div className="flex-1 min-w-0">
+                  <span className="font-semibold text-white text-sm block break-words">{mat.name}</span>
+                  <span className="font-mono text-[11px] font-bold text-slate-400">{mat.patrimonyNumber}</span>
+                  {mat.technicalDescription && (
+                    <p className="text-[11px] text-slate-400 line-clamp-2 mt-0.5">{mat.technicalDescription}</p>
+                  )}
+                </div>
+                <div className="font-mono text-right shrink-0">
+                  <span
+                    className={`font-bold text-base ${
+                      mat.availableQuantity === 0
+                        ? 'text-rose-400'
+                        : isLowStock
+                        ? 'text-amber-400'
+                        : 'text-emerald-400'
+                    }`}
+                  >
+                    {mat.availableQuantity}
+                  </span>
+                  <span className="text-slate-500 text-xs"> / {mat.totalQuantity}</span>
+                  <span className="block text-[10px] text-slate-500 font-sans">disp. / total</span>
+                </div>
+              </div>
+
+              <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+                <span className={`font-bold px-2 py-0.5 rounded-full border ${badge.colorClass}`}>{badge.label}</span>
+                {isLowStock && (
+                  <span className="font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 text-amber-400" />
+                    <span>Mínimo</span>
+                  </span>
+                )}
+                <span className="px-2 py-0.5 rounded bg-white/5 text-slate-300">
+                  {sigefStorage.getCategoryLabel(mat.category)}
+                </span>
+                {mat.storageLocation && (
+                  <span className="px-2 py-0.5 rounded bg-white/5 text-slate-300 break-words">{mat.storageLocation}</span>
+                )}
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-white/10 grid grid-cols-4 gap-1.5">
+                <button
+                  onClick={() => setSelectedMaterialHistory(mat)}
+                  className="min-h-11 flex flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] text-slate-300 hover:text-sky-300 hover:bg-white/5"
+                  title="Histórico de Movimentações"
+                >
+                  <History className="w-4 h-4" />
+                  <span>Histórico</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setAdjustingMaterial(mat);
+                    setAdjustDelta(1);
+                    setAdjustType('entrada');
+                    setAdjustReason('');
+                  }}
+                  className="min-h-11 flex flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] text-slate-300 hover:text-emerald-300 hover:bg-white/5"
+                  title="Ajuste Rápido de Estoque"
+                >
+                  <Package className="w-4 h-4" />
+                  <span>Estoque</span>
+                </button>
+                <button
+                  onClick={() => onOpenNewMaterial(mat)}
+                  className="min-h-11 flex flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] text-slate-300 hover:text-white hover:bg-white/5"
+                  title="Editar Material"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  <span>Editar</span>
+                </button>
+                <button
+                  onClick={() => setMaterialToDelete(mat)}
+                  className="min-h-11 flex flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] text-slate-300 hover:text-rose-400 hover:bg-white/5"
+                  title="Excluir Material Individualmente"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Excluir</span>
+                </button>
+              </div>
+            </div>
+          );
+        })}
+
+        {filteredMaterials.length === 0 && (
+          <div className="md:col-span-2 text-center py-12 px-4 rounded-2xl bg-[#102027] border border-white/10 text-slate-400">
+            <Dumbbell className="w-10 h-10 mx-auto opacity-30 mb-2" />
+            <p className="text-sm font-semibold">Nenhum material encontrado no acervo.</p>
+            <p className="text-xs text-slate-500 mt-1">
+              Você pode cadastrar manualmente ou importar via planilha Excel (.xlsx) / CSV.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Materials Table (tablet/desktop) */}
+      <div className="hidden lg:block rounded-2xl border border-white/10 bg-[#102027] overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-[#0B1418] text-slate-400 font-bold border-b border-white/10 uppercase tracking-wider text-[11px]">
@@ -588,7 +723,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
                         {/* History */}
                         <button
                           onClick={() => setSelectedMaterialHistory(mat)}
-                          className="p-1.5 text-slate-400 hover:text-sky-300 rounded-lg hover:bg-white/5 transition-colors"
+                          className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-sky-300 rounded-lg hover:bg-white/5 transition-colors"
                           title="Histórico de Movimentações"
                         >
                           <History className="w-4 h-4" />
@@ -602,7 +737,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
                             setAdjustType('entrada');
                             setAdjustReason('');
                           }}
-                          className="p-1.5 text-slate-400 hover:text-emerald-300 rounded-lg hover:bg-white/5 transition-colors"
+                          className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-emerald-300 rounded-lg hover:bg-white/5 transition-colors"
                           title="Ajuste Rápido de Estoque"
                         >
                           <Package className="w-4 h-4" />
@@ -611,7 +746,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
                         {/* Edit */}
                         <button
                           onClick={() => onOpenNewMaterial(mat)}
-                          className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+                          className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
                           title="Editar Material"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -620,7 +755,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
                         {/* Individual Delete */}
                         <button
                           onClick={() => setMaterialToDelete(mat)}
-                          className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5 transition-colors"
+                          className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5 transition-colors"
                           title="Excluir Material Individualmente"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -695,8 +830,8 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
 
       {/* Material Movement History Modal */}
       {selectedMaterialHistory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative w-full max-w-lg bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs">
+          <div className="sigef-modal relative w-full max-h-[100dvh] sm:max-h-[92vh] overflow-y-auto overscroll-contain max-w-lg bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -709,7 +844,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
               </div>
               <button
                 onClick={() => setSelectedMaterialHistory(null)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
+                className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -760,7 +895,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
               )}
             </div>
 
-            <div className="pt-4 mt-4 border-t border-white/10 flex justify-end">
+            <div className="sigef-modal-footer pt-4 mt-4 border-t border-white/10 flex justify-end">
               <button
                 onClick={() => setSelectedMaterialHistory(null)}
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold"
@@ -774,8 +909,8 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
 
       {/* Quick Stock Adjustment Modal */}
       {adjustingMaterial && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs">
+          <div className="sigef-modal relative w-full max-h-[100dvh] sm:max-h-[92vh] overflow-y-auto overscroll-contain max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
             <h3 className="text-base font-bold text-white mb-1">
               Ajuste de Estoque: {adjustingMaterial.name}
             </h3>
@@ -822,7 +957,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
                 />
               </div>
 
-              <div className="pt-3 border-t border-white/10 flex justify-end gap-2">
+              <div className="sigef-modal-footer pt-3 border-t border-white/10 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setAdjustingMaterial(null)}

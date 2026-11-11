@@ -17,8 +17,8 @@ export const LoanReceiptModal: React.FC<LoanReceiptModalProps> = ({ loan, isOpen
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-[#102027] text-slate-100 rounded-2xl border border-slate-700/60 p-5 sm:p-7 shadow-2xl my-6">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs">
+      <div className="sigef-modal relative w-full max-h-[100dvh] sm:max-h-[92vh] overflow-y-auto overscroll-contain max-w-2xl bg-[#102027] text-slate-100 rounded-2xl border border-slate-700/60 p-5 sm:p-7 shadow-2xl">
         {/* Controls - hidden on print */}
         <div className="no-print flex items-center justify-between pb-4 border-b border-slate-800">
           <div className="flex items-center gap-2">
@@ -37,7 +37,7 @@ export const LoanReceiptModal: React.FC<LoanReceiptModalProps> = ({ loan, isOpen
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
               aria-label="Fechar"
             >
               <X className="w-5 h-5" />
@@ -167,7 +167,7 @@ export const LoanReceiptModal: React.FC<LoanReceiptModalProps> = ({ loan, isOpen
         </div>
 
         {/* Action Buttons in Modal footer */}
-        <div className="no-print mt-5 flex justify-end gap-3">
+        <div className="sigef-modal-footer no-print mt-5 flex justify-end gap-3">
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors"

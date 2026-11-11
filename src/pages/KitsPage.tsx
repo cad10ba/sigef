@@ -42,8 +42,8 @@ export const KitsPage: React.FC<KitsPageProps> = ({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-            <Boxes className="w-6 h-6 text-purple-400" />
+          <h2 className="text-lg sm:text-2xl font-bold text-white flex items-center gap-2 leading-tight">
+            <Boxes className="w-6 h-6 shrink-0 text-purple-400" />
             <span>Kits Esportivos Pré-Montados</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-400">
@@ -53,7 +53,7 @@ export const KitsPage: React.FC<KitsPageProps> = ({
 
         <button
           onClick={() => onOpenNewKit()}
-          className="flex items-center gap-1.5 px-4 py-2 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-xl shadow-md shadow-emerald-950/40 transition-all active:scale-[0.98] self-start sm:self-auto"
+          className="flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-11 sm:min-h-0 px-4 py-2 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-xl shadow-md shadow-emerald-950/40 transition-all active:scale-[0.98] self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Montar Novo Kit</span>
@@ -152,7 +152,7 @@ export const KitsPage: React.FC<KitsPageProps> = ({
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => onOpenNewKit(kit)}
-                    className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+                    className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
                     title="Editar Composição do Kit"
                   >
                     <Edit2 className="w-4 h-4" />
@@ -160,7 +160,7 @@ export const KitsPage: React.FC<KitsPageProps> = ({
 
                   <button
                     onClick={() => handleDeleteKit(kit.id, kit.name)}
-                    className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5 transition-colors"
+                    className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5 transition-colors"
                     title="Excluir Kit"
                   >
                     <Trash2 className="w-4 h-4" />

@@ -40,8 +40,8 @@ export const ClearStockModal: React.FC<ClearStockModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
-      <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-3xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xs">
+      <div className="sigef-modal relative w-full max-h-[100dvh] sm:max-h-[92vh] overflow-y-auto overscroll-contain max-w-md bg-[#102027] text-slate-100 rounded-3xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <button
           onClick={handleCancelar}
           className="absolute right-4 top-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"
@@ -106,7 +106,7 @@ export const ClearStockModal: React.FC<ClearStockModalProps> = ({
         </div>
 
         {/* Buttons */}
-        <div className="mt-6 flex items-center justify-end gap-2.5 pt-4 border-t border-white/10">
+        <div className="sigef-modal-footer mt-6 flex items-center justify-end gap-2.5 pt-4 border-t border-white/10">
           <button
             type="button"
             onClick={handleCancelar}

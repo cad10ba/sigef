@@ -133,7 +133,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         {/* Banner 1: Terminal de Empréstimos */}
         <button
           onClick={onOpenTerminalLoan}
-          className="group relative flex flex-col justify-between p-6 rounded-2xl bg-gradient-to-br from-[#102027] to-[#122A2F] border border-emerald-500/30 hover:border-emerald-500/60 shadow-xl shadow-black/30 transition-all text-left overflow-hidden active:scale-[0.99]"
+          className="group relative flex flex-col justify-between p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-[#102027] to-[#122A2F] border border-emerald-500/30 hover:border-emerald-500/60 shadow-xl shadow-black/30 transition-all text-left overflow-hidden active:scale-[0.99]"
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all" />
           <div className="flex items-start justify-between">
@@ -161,7 +161,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         {/* Banner 2: Cronograma dos Espaços */}
         <button
           onClick={() => onNavigate('espacos')}
-          className="group relative flex flex-col justify-between p-6 rounded-2xl bg-gradient-to-br from-[#102027] to-[#162534] border border-sky-500/30 hover:border-sky-500/60 shadow-xl shadow-black/30 transition-all text-left overflow-hidden active:scale-[0.99]"
+          className="group relative flex flex-col justify-between p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-[#102027] to-[#162534] border border-sky-500/30 hover:border-sky-500/60 shadow-xl shadow-black/30 transition-all text-left overflow-hidden active:scale-[0.99]"
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-full blur-2xl group-hover:bg-sky-500/20 transition-all" />
           <div className="flex items-start justify-between">
@@ -191,7 +191,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <button
           onClick={() => onNavigate('materiais')}
-          className="flex items-center gap-2.5 p-3 rounded-xl bg-[#102027] border border-white/10 hover:border-white/20 transition-colors text-left"
+          className="flex items-center gap-2.5 p-3 min-h-14 rounded-xl bg-[#102027] border border-white/10 hover:border-white/20 transition-colors text-left min-w-0"
         >
           <Dumbbell className="w-4 h-4 text-emerald-400 shrink-0" />
           <div>
@@ -202,7 +202,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
         <button
           onClick={() => onNavigate('normas')}
-          className="flex items-center gap-2.5 p-3 rounded-xl bg-[#102027] border border-white/10 hover:border-white/20 transition-colors text-left"
+          className="flex items-center gap-2.5 p-3 min-h-14 rounded-xl bg-[#102027] border border-white/10 hover:border-white/20 transition-colors text-left min-w-0"
         >
           <BookOpenText className="w-4 h-4 text-sky-400 shrink-0" />
           <div>
@@ -213,7 +213,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
         <button
           onClick={() => onNavigate('espacos')}
-          className="flex items-center gap-2.5 p-3 rounded-xl bg-[#102027] border border-white/10 hover:border-white/20 transition-colors text-left"
+          className="flex items-center gap-2.5 p-3 min-h-14 rounded-xl bg-[#102027] border border-white/10 hover:border-white/20 transition-colors text-left min-w-0"
         >
           <Activity className="w-4 h-4 text-amber-400 shrink-0" />
           <div>
@@ -224,7 +224,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
         <button
           onClick={() => onNavigate('normas')}
-          className="flex items-center gap-2.5 p-3 rounded-xl bg-[#102027] border border-white/10 hover:border-white/20 transition-colors text-left"
+          className="flex items-center gap-2.5 p-3 min-h-14 rounded-xl bg-[#102027] border border-white/10 hover:border-white/20 transition-colors text-left min-w-0"
         >
           <PhoneCall className="w-4 h-4 text-purple-400 shrink-0" />
           <div>
@@ -559,8 +559,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
       {/* Modal for creating a new notice */}
       {isNewNoticeOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative w-full max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs">
+          <div className="sigef-modal relative w-full max-h-[100dvh] sm:max-h-[92vh] overflow-y-auto overscroll-contain max-w-md bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
             <h3 className="text-base font-bold text-white mb-1">Publicar Comunicado no Mural</h3>
             <p className="text-xs text-slate-400 mb-4">
               O aviso ficará visível para toda a comunidade acadêmica da COEF.
@@ -604,7 +604,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 />
               </div>
 
-              <div className="pt-3 border-t border-white/10 flex justify-end gap-2">
+              <div className="sigef-modal-footer pt-3 border-t border-white/10 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={handleCancelarNotice}

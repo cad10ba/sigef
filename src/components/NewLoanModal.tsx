@@ -227,8 +227,8 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
   const teachers = requesters.filter((r) => r.type === 'docente');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl my-6">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs">
+      <div className="sigef-modal relative w-full max-h-[100dvh] sm:max-h-[92vh] overflow-y-auto overscroll-contain max-w-2xl bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
         <div className="flex items-center justify-between pb-4 border-b border-white/10">
           <div>
             <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
@@ -241,7 +241,7 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
           </div>
           <button
             onClick={handleCancelar}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+            className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -253,8 +253,8 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
               Identificação do Solicitante (Matrícula ou SIAPE) <span className="text-emerald-400">*</span>
             </label>
-            <div className="relative flex items-center gap-2">
-              <div className="relative flex-1">
+            <div className="relative flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="relative flex-1 min-w-0">
                 <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
@@ -273,7 +273,7 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
                     setSearchReg(req.registration);
                   }
                 }}
-                className="h-10 px-2 bg-[#102027] border border-white/15 rounded-xl text-xs text-slate-300 focus:outline-none max-w-[140px]"
+                className="w-full sm:w-auto h-10 px-2 bg-[#102027] border border-white/15 rounded-xl text-xs text-slate-300 focus:outline-none sm:max-w-[140px]"
               >
                 <option value="">Selecionar da lista...</option>
                 {requesters.map((r) => (
@@ -293,9 +293,9 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
                     : 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200'
                 }`}
               >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-bold text-sm text-white">{selectedRequester.name}</span>
                       <span
                         className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
@@ -372,16 +372,16 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
 
           {/* Select Kit or Pick individual items */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <label className="block text-xs font-semibold text-slate-300">
                 Itens para Empréstimo <span className="text-emerald-400">*</span>
               </label>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">Kit pronto:</span>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <span className="text-xs text-slate-400 shrink-0">Kit pronto:</span>
                 <select
                   value={selectedKitId}
                   onChange={(e) => handleSelectKit(e.target.value)}
-                  className="h-8 px-2 bg-[#0B1418] border border-white/15 rounded-lg text-xs text-slate-200 focus:outline-none"
+                  className="flex-1 sm:flex-none min-w-0 h-8 px-2 bg-[#0B1418] border border-white/15 rounded-lg text-xs text-slate-200 focus:outline-none"
                 >
                   <option value="">Nenhum (avulso)</option>
                   {kits.map((k) => (
@@ -398,7 +398,7 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
               {materials.length > 0 ? (
                 <select
                   id="select-material"
-                  className="flex-1 h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+                  className="flex-1 min-w-0 h-9 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-sky-500"
                   defaultValue=""
                   onChange={(e) => {
                     if (e.target.value) {
@@ -452,7 +452,7 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
                         <button
                           type="button"
                           onClick={() => handleRemoveItem(idx)}
-                          className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5 transition-colors"
+                          className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5 transition-colors"
                           title="Remover"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -517,7 +517,7 @@ export const NewLoanModal: React.FC<NewLoanModalProps> = ({
           </div>
 
           {/* Submit */}
-          <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+          <div className="sigef-modal-footer pt-3 border-t border-white/10 flex items-center justify-between">
             <span className="text-xs text-slate-400">
               Atendente: <strong className="text-slate-200">{currentUser.name.split(' ')[0]}</strong>
             </span>

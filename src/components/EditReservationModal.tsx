@@ -102,8 +102,8 @@ export const EditReservationModal: React.FC<EditReservationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl my-6">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs">
+      <div className="sigef-modal relative w-full max-h-[100dvh] sm:max-h-[92vh] overflow-y-auto overscroll-contain max-w-2xl bg-[#102027] text-slate-100 rounded-2xl border border-white/10 p-5 sm:p-6 shadow-2xl">
         <div className="flex items-center justify-between pb-4 border-b border-white/10">
           <div>
             <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
@@ -116,7 +116,7 @@ export const EditReservationModal: React.FC<EditReservationModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+            className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
             title="Fechar"
           >
             <X className="w-5 h-5" />
@@ -293,7 +293,7 @@ export const EditReservationModal: React.FC<EditReservationModalProps> = ({
             />
           </div>
 
-          <div className="pt-3 border-t border-white/10 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2">
+          <div className="sigef-modal-footer pt-3 border-t border-white/10 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2">
             {confirmDelete ? (
                 <div className="flex items-center justify-center gap-2">
                   <span className="text-xs text-rose-200 font-semibold">Excluir esta reserva?</span>
