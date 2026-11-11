@@ -70,8 +70,8 @@ export const NewSystemUserModal: React.FC<NewSystemUserModalProps> = ({
       return;
     }
 
-    if (password.length < 4) {
-      showToast('A senha provisória deve ter pelo menos 4 dígitos.', 'error');
+    if (password.length < 8) {
+      showToast('A senha provisória deve ter pelo menos 8 caracteres.', 'error');
       return;
     }
 

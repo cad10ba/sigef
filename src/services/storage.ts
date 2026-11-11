@@ -656,23 +656,10 @@ export const sigefStorage = {
       };
     }
 
-    // A senha é verificada pelo Supabase Auth (auth.users). Se o Auth estiver
-    // indisponível, a RPC sigef_login_session ainda confere o mesmo hash bcrypt
-    // guardado em app_users — nenhuma senha chega ao navegador em nenhum caso.
+    // A senha é verificada só pelo Supabase Auth (auth.users). O login antigo
+    // (sigef_login_session) foi desativado no banco pela migração 011.
     try {
-      let data = await signInWithSupabaseAuth(cleanId, password);
-
-      if (!data) {
-        const legacy = await supabase.rpc('sigef_login_session', {
-          p_identifier: cleanId,
-          p_password: password,
-        });
-        if (legacy.error) {
-          console.error('Falha ao chamar sigef_login_session:', legacy.error.message);
-        } else if (legacy.data?.success && legacy.data.user) {
-          data = legacy.data;
-        }
-      }
+      const data = await signInWithSupabaseAuth(cleanId, password);
 
       if (!data?.success || !data.user) {
         // Mensagem fixa: o servidor também não distingue "usuário não
@@ -739,14 +726,17 @@ export const sigefStorage = {
       return { success: false, message: 'Todos os campos obrigatórios devem ser preenchidos.' };
     }
 
-    if (data.password.trim().length < 4) {
-      return { success: false, message: 'A senha deve conter no mínimo 4 caracteres.' };
+    if (data.password.trim().length < 8) {
+      return { success: false, message: 'A senha deve conter no mínimo 8 caracteres.' };
     }
 
     // Cadastro feito por um administrador (outra pessoa) não pode trocar a
     // sessão de quem está usando o sistema pela do novo usuário: sem isso a
     // exclusão passava a ser recusada com "somente administradores".
-    const isSelfSignup = !getSessionToken();
+    // Só um administrador logado cadastra contas (checado também no banco).
+    if (!getSessionToken()) {
+      return { success: false, message: 'Entre como administrador para cadastrar usuários.' };
+    }
 
     let roleLabel = 'Docente de Educação Física';
     if (data.role === 'admin') roleLabel = 'Coordenação de Educação Física (Administrador)';
@@ -795,15 +785,6 @@ export const sigefStorage = {
         roleLabel: res.user.roleLabel || draft.roleLabel,
         createdAt: res.user.createdAt || draft.createdAt,
       };
-
-      // Só o cadastro próprio abre sessão: a conta recém-criada passa a
-      // sincronizar dados com o Supabase sem afetar quem já está logado.
-      if (isSelfSignup) {
-        const session = await signInWithSupabaseAuth(cleanEmail, data.password);
-        if (session?.session_token) {
-          setSessionToken(session.session_token);
-        }
-      }
     } catch (err) {
       console.error('Erro inesperado no cadastro:', err);
       return {
@@ -840,18 +821,9 @@ export const sigefStorage = {
       safeSupabaseUpsert('requesters', requesterToRow(newReq));
     }
 
-    // A troca do usuário logado só faz sentido no cadastro próprio; quando um
-    // admin cria a conta de outra pessoa, ele continua no sistema como admin.
-    if (isSelfSignup) {
-      this.setCurrentUser(newUser);
-      this.setAuthUser(newUser);
-    }
-
     return {
       success: true,
-      message: isSelfSignup
-        ? `Conta criada com sucesso! Bem-vindo(a) ao SIGEF, ${newUser.name}.`
-        : `Conta de ${newUser.name} criada com sucesso!`,
+      message: `Conta de ${newUser.name} criada com sucesso!`,
       user: newUser,
     };
   },
@@ -881,8 +853,8 @@ export const sigefStorage = {
       return { success: false, message: 'Informe a senha atual.' };
     }
 
-    if (!newPassword || newPassword.trim().length < 4) {
-      return { success: false, message: 'A nova senha deve possuir pelo menos 4 caracteres.' };
+    if (!newPassword || newPassword.trim().length < 8) {
+      return { success: false, message: 'A nova senha deve possuir pelo menos 8 caracteres.' };
     }
 
     // A senha atual é conferida contra o hash dentro do banco; o navegador não

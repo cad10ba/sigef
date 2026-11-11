@@ -50,8 +50,8 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       return;
     }
 
-    if (newPassword.length < 4) {
-      showToast('A nova senha deve ter no mínimo 4 caracteres.', 'error');
+    if (newPassword.length < 8) {
+      showToast('A nova senha deve ter no mínimo 8 caracteres.', 'error');
       return;
     }
 
@@ -153,7 +153,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               type={showPasswords ? 'text' : 'password'}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Mínimo 4 caracteres"
+              placeholder="Mínimo 8 caracteres"
               className="w-full h-9.5 px-3 bg-[#0B1418] border border-white/15 rounded-xl text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
               required
             />
