@@ -50,6 +50,15 @@ export const Navigation: React.FC<NavigationProps> = ({
     { id: 'normas' as ActiveTab, label: 'Normas & Contato', icon: BookOpenText },
   ];
 
+  // Atalhos fixos na barra inferior: os cinco destinos de uso diário no balcão.
+  const mobileTabs = [
+    { id: 'inicio' as ActiveTab, label: 'Início', icon: LayoutDashboard },
+    { id: 'espacos' as ActiveTab, label: 'Espaços', icon: CalendarDays },
+    { id: 'emprestimos' as ActiveTab, label: 'Empréstimos', icon: ClipboardList },
+    { id: 'materiais' as ActiveTab, label: 'Materiais', icon: Dumbbell },
+    { id: 'kits' as ActiveTab, label: 'Kits', icon: Boxes },
+  ];
+
   return (
     <>
       {/* Mobile Drawer Backdrop */}

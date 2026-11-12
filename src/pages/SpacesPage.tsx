@@ -488,6 +488,14 @@ export const SpacesPage: React.FC<SpacesPageProps> = ({ onOpenNewReservation, us
         </span>
       </div>
 
+      {/* Dica de navegação da grade no celular */}
+      <div className="sm:hidden flex items-start gap-1.5 text-[11px] text-slate-400 px-1">
+        <Info className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+        <span>
+          Deslize a grade para o lado para ver todos os dias, ou use a Visão Dia para a agenda completa.
+        </span>
+      </div>
+
       {/* WEEKLY GRID VIEW */}
       {viewMode === 'semana' ? (
         <div className="space-y-1.5">

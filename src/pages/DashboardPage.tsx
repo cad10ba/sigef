@@ -129,7 +129,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   return (
     <div className="space-y-6">
       {/* 2 Big Primary Highlight Action Banners */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         {/* Banner 1: Terminal de Empréstimos */}
         <button
           onClick={onOpenTerminalLoan}
@@ -235,9 +235,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       </div>
 
       {/* KPI Stat Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
         {/* Alunos Atendidos */}
-        <div className="p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
           <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
             Alunos Atendidos
           </span>
@@ -249,7 +249,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
 
         {/* Materiais Cadastrados */}
-        <div className="p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
           <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
             Materiais no Acervo
           </span>
@@ -261,7 +261,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
 
         {/* Taxa de Ocupação */}
-        <div className="p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
           <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
             Taxa de Ocupação
           </span>
@@ -274,7 +274,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
 
         {/* Kits Prontos */}
-        <div className="p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
           <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
             Kits Prontos
           </span>
@@ -288,7 +288,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
 
         {/* Empréstimos Ativos */}
-        <div className="p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col justify-between">
           <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
             Empréstimos Ativos
           </span>
@@ -324,7 +324,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
       {/* Espaços em Atividade Hoje */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h3 className="text-base sm:text-lg font-bold text-white">
               Espaços Esportivos em Atividade Hoje

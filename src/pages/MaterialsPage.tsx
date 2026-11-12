@@ -251,7 +251,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
             title="Importar materiais via planilha Excel (.xlsx) ou CSV com modelo oficial"
           >
             <Upload className="w-4 h-4" />
-            <span>Importar Planilha</span>
+            <span className="hidden sm:inline">Importar Planilha</span>
           </button>
 
           {/* Export Dropdown */}
@@ -265,7 +265,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
               title="Exportar inventário"
             >
               <Download className="w-4 h-4 text-slate-400" />
-              <span>Exportar</span>
+              <span className="hidden sm:inline">Exportar</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
 
@@ -300,7 +300,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
               title="Baixar planilha modelo de cadastro"
             >
               <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-              <span>Baixar Modelo</span>
+              <span className="hidden sm:inline">Baixar Modelo</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
 
@@ -340,7 +340,7 @@ export const MaterialsPage: React.FC<MaterialsPageProps> = ({ onOpenNewMaterial,
               title="Excluir todos os materiais do acervo de uma vez"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Excluir Todo o Estoque</span>
+              <span className="hidden sm:inline">Excluir Todo o Estoque</span>
             </button>
           )}
 
