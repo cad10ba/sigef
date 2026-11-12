@@ -67,8 +67,8 @@ export const NormsPage: React.FC<NormsPageProps> = ({ userRole }) => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-            <BookOpenText className="w-6 h-6 text-sky-400" />
+          <h2 className="text-lg sm:text-2xl font-bold text-white flex items-center gap-2 leading-tight">
+            <BookOpenText className="w-6 h-6 shrink-0 text-sky-400" />
             <span>Normas, Regulamento & Atendimento COEF</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-400">
@@ -88,7 +88,7 @@ export const NormsPage: React.FC<NormsPageProps> = ({ userRole }) => {
                 setIsEditing(true);
               }
             }}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-colors self-start sm:self-auto ${
+            className={`flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-11 sm:min-h-0 px-4 py-2 rounded-xl text-xs font-semibold transition-colors self-start sm:self-auto ${
               isEditing
                 ? 'bg-slate-700 text-slate-200 hover:bg-slate-600'
                 : 'bg-white/5 hover:bg-white/10 text-white border border-white/10'

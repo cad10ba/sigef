@@ -11,6 +11,11 @@
   --color-brand-card: #102027;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   font-family: var(--font-sans);
   transition: background-color 0.2s ease, color 0.2s ease;
@@ -37,6 +42,105 @@ body {
   .overflow-x-auto::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* ====================================================================
+   MOBILE-FIRST (celulares ~360-412px)
+   ==================================================================== */
+/* Nunca rolar a página na horizontal; tabelas largas rolam dentro do próprio card. */
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+/* Remove o atraso/realce de toque no Android. */
+button,
+a,
+label,
+select,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+@media (max-width: 639.98px) {
+  /* Campos com 16px: impede o zoom automático do navegador ao focar. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  select {
+    min-height: 44px;
+  }
+
+  input,
+  select,
+  textarea {
+    max-width: 100%;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  /* Modais viram "folha" de baixo para cima ocupando a largura toda. */
+  .sigef-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100dvh;
+    margin: 0;
+    padding: 1rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-left-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+  }
+
+  /* Rodapé de ações do modal fica preso embaixo enquanto o formulário rola. */
+  .sigef-modal-footer {
+    position: sticky;
+    /* Chrome ancora o sticky na caixa de conteúdo: compensa o padding do modal. */
+    bottom: calc(-1rem - env(safe-area-inset-bottom));
+    z-index: 5;
+    margin: 0 -1rem calc(-1rem - env(safe-area-inset-bottom));
+    padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+    background-color: #102027;
+    flex-wrap: wrap;
+  }
+
+  .sigef-modal-footer > div {
+    flex: 1 1 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .sigef-modal-footer > button,
+  .sigef-modal-footer > div > button {
+    flex: 1 1 0%;
+    min-height: 44px;
+    justify-content: center;
+  }
+}
+
+html:not(.dark) .sigef-modal-footer {
+  background-color: #FFFFFF;
 }
 
 /* ====================================================================
@@ -299,6 +403,10 @@ html:not(.dark) .bg-sky-950\/30 {
   }
   .no-print {
     display: none !important;
+  }
+  .sigef-modal {
+    max-height: none !important;
+    overflow: visible !important;
   }
   .print-only {
     display: block !important;

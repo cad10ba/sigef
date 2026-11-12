@@ -110,8 +110,8 @@ export const MaterialImportModal: React.FC<MaterialImportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-xs">
-      <div className="relative w-full max-w-3xl bg-[#102027] text-slate-100 rounded-3xl border border-white/15 p-5 sm:p-7 shadow-2xl max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xs">
+      <div className="sigef-modal relative w-full max-h-[100dvh] sm:max-h-[92vh] overflow-y-auto overscroll-contain max-w-3xl bg-[#102027] text-slate-100 rounded-3xl border border-white/15 p-5 sm:p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="flex items-start justify-between pb-4 border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -134,8 +134,7 @@ export const MaterialImportModal: React.FC<MaterialImportModalProps> = ({
           </div>
           <button
             onClick={handleCancelar}
-            aria-label="Fechar"
-            className="p-2 -m-1 text-slate-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
+            className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -254,7 +253,7 @@ export const MaterialImportModal: React.FC<MaterialImportModalProps> = ({
                     </button>
                     <button
                       onClick={handleResetFile}
-                      className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5"
+                      className="inline-flex items-center justify-center min-w-10 min-h-10 sm:min-w-0 sm:min-h-0 p-1.5 shrink-0 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5"
                       title="Remover arquivo"
                     >
                       <X className="w-4 h-4" />
@@ -463,7 +462,7 @@ export const MaterialImportModal: React.FC<MaterialImportModalProps> = ({
         )}
 
         {/* Footer Actions */}
-        <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-end gap-2.5">
+        <div className="sigef-modal-footer mt-6 pt-4 border-t border-white/10 flex items-center justify-end gap-2.5">
           <button
             type="button"
             onClick={handleCancelar}

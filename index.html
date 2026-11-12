@@ -2,30 +2,26 @@
 <html lang="pt-BR" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0B1418" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>SIGEF – Sistema Integrado de Gestão da Educação Física | IF</title>
     <meta name="description" content="Sistema completo para gestão de espaços esportivos, acervo de materiais e empréstimos da Coordenação de Educação Física (COEF) do Instituto Federal." />
     <meta property="og:title" content="SIGEF – Sistema Integrado de Gestão da Educação Física | IF" />
     <meta property="og:description" content="Sistema completo para gestão de espaços esportivos, acervo de materiais e empréstimos da Coordenação de Educação Física (COEF) do Instituto Federal." />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://sigef-lyart.vercel.app/" />
+    <meta property="og:image" content="https://sigef-lyart.vercel.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="SIGEF – Sistema Integrado de Gestão da Educação Física" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta name="twitter:image" content="https://sigef-lyart.vercel.app/og-image.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <script>
-      (function() {
-        try {
-          var raw = localStorage.getItem('sigef_theme_v2_blank');
-          var theme = raw ? JSON.parse(raw) : 'dark';
-          if (theme === 'light') {
-            document.documentElement.classList.remove('dark');
-          } else {
-            document.documentElement.classList.add('dark');
-          }
-        } catch(e) {}
-      })();
-    </script>
+    <script src="/theme-init.js"></script>
   </head>
   <body class="bg-[#0B1418] text-slate-100 antialiased selection:bg-[#1B8A4B] selection:text-white min-h-dvh">
     <div id="root"></div>

@@ -1,4 +1,5 @@
-import * as XLSX from 'xlsx';
+// A biblioteca de planilhas (~400 KB) é carregada só quando usada.
+const loadXLSX = () => import('xlsx');
 import { Material, MaterialCategory, ConservationState } from '../types/sigef';
 import { sigefStorage } from '../services/storage';
 
@@ -170,7 +171,8 @@ const INSTRUCTIONS_ROWS = [
 /**
  * Downloads the official Excel (.xlsx) template for registering materials
  */
-export function downloadMaterialsExcelTemplate(): void {
+export async function downloadMaterialsExcelTemplate(): Promise<void> {
+  const XLSX = await loadXLSX();
   const wb = XLSX.utils.book_new();
 
   // Sheet 1: Model
@@ -244,7 +246,8 @@ export function downloadMaterialsCSVTemplate(): void {
 /**
  * Exports current inventory to an Excel (.xlsx) spreadsheet
  */
-export function exportMaterialsToExcel(materials: Material[], campusName = 'Campus IF'): void {
+export async function exportMaterialsToExcel(materials: Material[], campusName = 'Campus IF'): Promise<void> {
+  const XLSX = await loadXLSX();
   const rows = materials.map((m) => {
     const catLabel = sigefStorage.getCategoryLabel(m.category);
     const stateObj = VALID_STATES.find((s) => s.key === m.conservationState);
@@ -302,6 +305,7 @@ export async function parseMaterialsSpreadsheet(
   const materials: Material[] = [];
 
   try {
+    const XLSX = await loadXLSX();
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: 'array' });
 

@@ -25,8 +25,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-      <div className="relative w-full max-w-md rounded-2xl bg-[#102027] dark:bg-[#102027] border border-slate-700/60 p-6 shadow-2xl text-slate-100 max-h-[90dvh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-xs">
+      <div className="sigef-modal relative w-full max-h-[100dvh] sm:max-h-[92vh] overflow-y-auto overscroll-contain max-w-md rounded-2xl bg-[#102027] dark:bg-[#102027] border border-slate-700/60 p-6 shadow-2xl text-slate-100 animate-in fade-in zoom-in-95 duration-150">
         <button
           onClick={onCancel}
           className="absolute right-4 top-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
@@ -51,7 +51,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </div>
         </div>
 
-        <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+        <div className="sigef-modal-footer mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
           <button
             type="button"
             onClick={onCancel}

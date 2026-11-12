@@ -87,8 +87,8 @@ export const LoansPage: React.FC<LoansPageProps> = ({
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-            <ClipboardList className="w-6 h-6 text-sky-400" />
+          <h2 className="text-lg sm:text-2xl font-bold text-white flex items-center gap-2 leading-tight">
+            <ClipboardList className="w-6 h-6 shrink-0 text-sky-400" />
             <span>Terminal de Empréstimos & Devoluções</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-400">
@@ -98,7 +98,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({
 
         <button
           onClick={() => onOpenNewLoan()}
-          className="flex items-center gap-1.5 px-4 py-2 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-xl shadow-md shadow-emerald-950/40 transition-all active:scale-[0.98] self-start sm:self-auto"
+          className="flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-11 sm:min-h-0 px-4 py-2 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-xl shadow-md shadow-emerald-950/40 transition-all active:scale-[0.98] self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Novo Empréstimo</span>
@@ -106,10 +106,10 @@ export const LoansPage: React.FC<LoansPageProps> = ({
       </div>
 
       {/* Terminal de Balcão (Fast barcode reader / registration input) */}
-      <div className="p-5 rounded-2xl bg-gradient-to-br from-[#102027] to-[#0E1E24] border border-sky-500/30 shadow-xl">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2">
-            <ScanLine className="w-5 h-5 text-sky-400" />
+      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#102027] to-[#0E1E24] border border-sky-500/30 shadow-xl">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mb-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <ScanLine className="w-5 h-5 shrink-0 text-sky-400" />
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">
               Terminal de Balcão Express (Leitor de Código / Matrícula)
             </h3>
@@ -131,7 +131,8 @@ export const LoansPage: React.FC<LoansPageProps> = ({
                 setTerminalInput('');
                 setTerminalResult(null);
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 inline-flex items-center justify-center text-slate-400 hover:text-white"
+              aria-label="Limpar"
             >
               <X className="w-4 h-4" />
             </button>
@@ -148,7 +149,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({
             }`}
           >
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="font-bold text-base text-white">{terminalResult.name}</span>
                 <span className="text-xs uppercase font-bold px-2 py-0.5 rounded bg-white/10 text-slate-200 font-mono">
                   {terminalResult.registration}
@@ -174,7 +175,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({
               )}
             </div>
 
-            <div className="shrink-0 flex items-center gap-2">
+            <div className="shrink-0 flex items-center gap-2 w-full sm:w-auto">
               <button
                 onClick={() => {
                   onOpenNewLoan(terminalResult.id);
@@ -182,7 +183,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({
                   setTerminalResult(null);
                 }}
                 disabled={terminalResult.isBlocked}
-                className={`px-4 py-2 text-xs font-semibold rounded-xl shadow transition-all ${
+                className={`w-full sm:w-auto min-h-11 sm:min-h-0 px-4 py-2 text-xs font-semibold rounded-xl shadow transition-all ${
                   terminalResult.isBlocked
                     ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                     : 'bg-[#1B8A4B] hover:bg-[#22A55B] text-white active:scale-95'
@@ -198,10 +199,10 @@ export const LoansPage: React.FC<LoansPageProps> = ({
       {/* Tabs and Search Bar */}
       <div className="p-4 rounded-2xl bg-[#102027] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Tabs */}
-        <div className="flex items-center bg-[#0B1418] p-1 rounded-xl border border-white/10 overflow-x-auto max-w-full">
+        <div className="grid grid-cols-3 sm:flex sm:items-center bg-[#0B1418] p-1 rounded-xl border border-white/10">
           <button
             onClick={() => setActiveTab('ativos')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+            className={`px-2 sm:px-3.5 min-h-10 sm:min-h-0 sm:py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
               activeTab === 'ativos'
                 ? 'bg-sky-600 text-white shadow'
                 : 'text-slate-400 hover:text-white'
@@ -215,7 +216,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({
 
           <button
             onClick={() => setActiveTab('atrasados')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+            className={`px-2 sm:px-3.5 min-h-10 sm:min-h-0 sm:py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
               activeTab === 'atrasados'
                 ? 'bg-rose-600 text-white shadow'
                 : 'text-slate-400 hover:text-white'
@@ -229,7 +230,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({
 
           <button
             onClick={() => setActiveTab('devolvidos')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+            className={`px-2 sm:px-3.5 min-h-10 sm:min-h-0 sm:py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
               activeTab === 'devolvidos'
                 ? 'bg-emerald-600 text-white shadow'
                 : 'text-slate-400 hover:text-white'
@@ -250,7 +251,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
             placeholder="Filtrar por termo, aluno, material..."
-            className="w-full h-9 pl-9 pr-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
+            className="w-full h-11 sm:h-9 pl-9 pr-3 bg-[#0B1418] border border-white/15 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
           />
           {searchFilter && (
             <button
@@ -280,8 +281,8 @@ export const LoansPage: React.FC<LoansPageProps> = ({
               }`}
             >
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-white/10">
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono font-bold text-white text-base">
                       {loan.termNumber}
                     </span>
@@ -322,7 +323,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({
               </div>
 
               {/* Items List */}
-              <div className="my-3 py-2">
+              <div className="my-3 py-2 min-w-0">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
                   Itens Alocados:
                 </span>
@@ -330,7 +331,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({
                   {loan.items.map((item, idx) => (
                     <div
                       key={idx}
-                      className="p-2 rounded-lg bg-[#0B1418] border border-white/5 text-xs flex items-center justify-between"
+                      className="p-2 rounded-lg bg-[#0B1418] border border-white/5 text-xs flex items-center justify-between min-w-0"
                     >
                       <div className="truncate pr-2">
                         <span className="text-white font-medium block truncate">
@@ -350,7 +351,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({
 
               {/* Footer info & Actions */}
               <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400">
-                <div className="flex items-center gap-4 flex-wrap text-[11px]">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 sm:flex-wrap text-[11px]">
                   <span>
                     Retirado em: <strong className="text-slate-300">{formatDateTimeBR(loan.loanDate)}</strong>
                   </span>
@@ -369,11 +370,11 @@ export const LoansPage: React.FC<LoansPageProps> = ({
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 self-end sm:self-auto">
+                <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto sm:self-auto">
                   {/* Comprovante / Print receipt */}
                   <button
                     onClick={() => onOpenReceipt(loan)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 text-xs font-semibold rounded-lg transition-colors"
+                    className="flex items-center justify-center gap-1.5 min-h-11 sm:min-h-0 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 text-xs font-semibold rounded-lg transition-colors"
                     title="Imprimir Comprovante / Termo de Responsabilidade"
                   >
                     <Printer className="w-3.5 h-3.5" />
@@ -384,7 +385,7 @@ export const LoansPage: React.FC<LoansPageProps> = ({
                   {loan.status !== 'devolvido' && (
                     <button
                       onClick={() => onOpenReturnLoan(loan)}
-                      className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-lg shadow transition-colors"
+                      className="flex items-center justify-center gap-1.5 min-h-11 sm:min-h-0 px-3.5 py-1.5 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-lg shadow transition-colors"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>Registrar Devolução</span>

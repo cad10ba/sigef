@@ -26,6 +26,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
+
+  const handleForgotPassword = async () => {
+    if (isSendingReset) return;
+    setIsSendingReset(true);
+    const res = await sigefStorage.requestPasswordReset(loginIdentifier);
+    setIsSendingReset(false);
+    showToast(res.message, res.success ? 'success' : 'error');
+  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +146,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   title={showLoginPassword ? 'Ocultar senha' : 'Exibir senha'}
                 >
                   {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={isSendingReset}
+                  className="text-xs text-emerald-400 hover:text-emerald-300 disabled:opacity-50"
+                >
+                  {isSendingReset ? 'Enviando...' : 'Esqueci minha senha'}
                 </button>
               </div>
             </div>

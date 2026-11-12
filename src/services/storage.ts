@@ -87,11 +87,14 @@ async function signInWithSupabaseAuth(
     const clean = identifier.trim();
     let email = clean.includes('@') ? clean.toLowerCase() : '';
 
-    const { data: resolved } = await supabase.rpc('sigef_resolve_identifier', {
-      p_identifier: clean,
-    });
-    if (resolved?.success && resolved.email) {
-      email = String(resolved.email).toLowerCase();
+    if (!email) {
+      // Matrícula/SIAPE: o servidor devolve só o e-mail, nunca o nome.
+      const { data: resolved } = await supabase.rpc('sigef_resolve_identifier', {
+        p_identifier: clean,
+      });
+      if (resolved?.success && resolved.email) {
+        email = String(resolved.email).toLowerCase();
+      }
     }
     if (!email) return null;
 
@@ -115,6 +118,16 @@ async function signInWithSupabaseAuth(
   } catch (err) {
     console.warn('Erro no login pelo Supabase Auth:', err);
     return null;
+  }
+}
+
+// Avisa a interface quando a nuvem recusa uma gravação (ex.: registro ligado a
+// outro, tombo/matrícula/e-mail duplicado). O ToastProvider escuta este evento.
+function notifySyncError(message: string) {
+  try {
+    window.dispatchEvent(new CustomEvent('sigef-sync-error', { detail: { message } }));
+  } catch {
+    // ambiente sem window
   }
 }
 
@@ -144,19 +157,17 @@ async function safeSupabaseUpsert(table: string, data: any) {
           );
           await new Promise((resolve) => setTimeout(resolve, 800));
         } else {
-          console.warn(
-            `Supabase upsert into ${table} note:`,
-            error?.message || res?.message || 'falha na sincronização'
-          );
+          const msg = res?.message || error?.message || 'falha na sincronização';
+          console.warn(`Supabase upsert into ${table} note:`, msg);
+          notifySyncError(`Não foi possível salvar na nuvem: ${msg}`);
         }
       }
       return;
     }
 
-    const { error } = await supabase.from(table).upsert(rows);
-    if (error && error.code !== 'PGRST205') {
-      console.warn(`Supabase upsert into ${table} note:`, error.message);
-    }
+    // Sem sessão do app não há escrita na nuvem: a gravação direta com a
+    // chave pública foi removida (a RLS só aceita a equipe autenticada).
+    console.warn(`Supabase upsert into ${table} ignorado: sem sessão ativa.`);
   } catch {
     // Graceful offline/missing tables fallback
   }
@@ -182,18 +193,18 @@ async function safeSupabaseDeleteMultiple(table: string, ids: string[]) {
           `Supabase delete from ${table} note:`,
           error?.message || res?.message || 'falha na sincronização'
         );
-        enqueueDeletions(table, ids);
+        if (res?.success === false && res?.message) {
+          // Recusa definitiva do banco (ex.: registro em uso): não adianta reenviar.
+          notifySyncError(`Não foi possível excluir: ${res.message}`);
+        } else {
+          enqueueDeletions(table, ids);
+        }
       }
       return;
     }
 
     // Sem sessão a nuvem recusa a exclusão: guarda para reenviar depois.
     enqueueDeletions(table, ids);
-
-    const { error } = await supabase.from(table).delete().in('id', ids);
-    if (error && error.code !== 'PGRST205') {
-      console.warn(`Supabase delete from ${table} note:`, error.message);
-    }
   } catch {
     // Falha de rede: a exclusão fica pendente e é reenviada na próxima sessão.
     enqueueDeletions(table, ids);
@@ -309,10 +320,8 @@ async function safeSupabaseDeleteAll(table: string) {
       return;
     }
 
-    const { error } = await supabase.from(table).delete().neq('id', '');
-    if (error && error.code !== 'PGRST205') {
-      console.warn(`Supabase delete all from ${table} note:`, error.message);
-    }
+    // Sem sessão do app, "apagar tudo" nunca vai para a nuvem.
+    console.warn(`Supabase delete all from ${table} ignorado: sem sessão ativa.`);
   } catch {
     // Graceful offline/missing tables fallback
   }
@@ -540,13 +549,15 @@ export const sigefStorage = {
     if (stored) return stored;
     const users = this.getUsers();
     if (users.length > 0) return users[0];
+    // Sem usuário: perfil visitante com o menor privilégio. Nunca assumir
+    // admin no navegador; a tela de login aparece porque authUser é nulo.
     return {
-      id: 'temp-admin',
-      name: 'Administrador',
-      role: 'admin',
-      registration: 'SIAPE',
-      email: 'admin@ifba.edu.br',
-      roleLabel: 'Coordenação de Educação Física (Administrador)',
+      id: 'visitante',
+      name: 'Visitante',
+      role: 'estagiario',
+      registration: '',
+      email: '',
+      roleLabel: 'Sem sessão',
     };
   },
 
@@ -659,23 +670,10 @@ export const sigefStorage = {
       };
     }
 
-    // A senha é verificada pelo Supabase Auth (auth.users). Se o Auth estiver
-    // indisponível, a RPC sigef_login_session ainda confere o mesmo hash bcrypt
-    // guardado em app_users — nenhuma senha chega ao navegador em nenhum caso.
+    // A senha é verificada só pelo Supabase Auth (auth.users). O login antigo
+    // (sigef_login_session) foi desativado no banco pela migração 011.
     try {
-      let data = await signInWithSupabaseAuth(cleanId, password);
-
-      if (!data) {
-        const legacy = await supabase.rpc('sigef_login_session', {
-          p_identifier: cleanId,
-          p_password: password,
-        });
-        if (legacy.error) {
-          console.error('Falha ao chamar sigef_login_session:', legacy.error.message);
-        } else if (legacy.data?.success && legacy.data.user) {
-          data = legacy.data;
-        }
-      }
+      const data = await signInWithSupabaseAuth(cleanId, password);
 
       if (!data?.success || !data.user) {
         // Mensagem fixa: o servidor também não distingue "usuário não
@@ -742,14 +740,17 @@ export const sigefStorage = {
       return { success: false, message: 'Todos os campos obrigatórios devem ser preenchidos.' };
     }
 
-    if (data.password.trim().length < 4) {
-      return { success: false, message: 'A senha deve conter no mínimo 4 caracteres.' };
+    if (data.password.trim().length < 8) {
+      return { success: false, message: 'A senha deve conter no mínimo 8 caracteres.' };
     }
 
     // Cadastro feito por um administrador (outra pessoa) não pode trocar a
     // sessão de quem está usando o sistema pela do novo usuário: sem isso a
     // exclusão passava a ser recusada com "somente administradores".
-    const isSelfSignup = !getSessionToken();
+    // Só um administrador logado cadastra contas (checado também no banco).
+    if (!getSessionToken()) {
+      return { success: false, message: 'Entre como administrador para cadastrar usuários.' };
+    }
 
     let roleLabel = 'Docente de Educação Física';
     if (data.role === 'admin') roleLabel = 'Coordenação de Educação Física (Administrador)';
@@ -798,15 +799,6 @@ export const sigefStorage = {
         roleLabel: res.user.roleLabel || draft.roleLabel,
         createdAt: res.user.createdAt || draft.createdAt,
       };
-
-      // Só o cadastro próprio abre sessão: a conta recém-criada passa a
-      // sincronizar dados com o Supabase sem afetar quem já está logado.
-      if (isSelfSignup) {
-        const session = await signInWithSupabaseAuth(cleanEmail, data.password);
-        if (session?.session_token) {
-          setSessionToken(session.session_token);
-        }
-      }
     } catch (err) {
       console.error('Erro inesperado no cadastro:', err);
       return {
@@ -843,20 +835,56 @@ export const sigefStorage = {
       safeSupabaseUpsert('requesters', requesterToRow(newReq));
     }
 
-    // A troca do usuário logado só faz sentido no cadastro próprio; quando um
-    // admin cria a conta de outra pessoa, ele continua no sistema como admin.
-    if (isSelfSignup) {
-      this.setCurrentUser(newUser);
-      this.setAuthUser(newUser);
-    }
-
     return {
       success: true,
-      message: isSelfSignup
-        ? `Conta criada com sucesso! Bem-vindo(a) ao SIGEF, ${newUser.name}.`
-        : `Conta de ${newUser.name} criada com sucesso!`,
+      message: `Conta de ${newUser.name} criada com sucesso!`,
       user: newUser,
     };
+  },
+
+  async requestPasswordReset(identifier: string): Promise<{ success: boolean; message: string }> {
+    const clean = identifier.trim();
+    // Mensagem sempre igual: não revela se a conta existe.
+    const generic = 'Se houver uma conta com esse identificador, enviamos um link para o e-mail cadastrado. Confira também o spam.';
+    if (!clean) {
+      return { success: false, message: 'Digite seu e-mail ou matrícula/SIAPE no campo de identificador.' };
+    }
+    try {
+      let email = clean.includes('@') ? clean.toLowerCase() : '';
+      if (!email) {
+        const { data } = await supabase.rpc('sigef_resolve_identifier', { p_identifier: clean });
+        email = data?.success && data.email ? String(data.email) : '';
+      }
+      if (email) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + '/',
+        });
+        if (error && /rate|limit/i.test(error.message)) {
+          return { success: false, message: 'Muitos pedidos seguidos. Aguarde alguns minutos e tente de novo.' };
+        }
+      }
+      return { success: true, message: generic };
+    } catch {
+      return { success: false, message: AUTH_UNAVAILABLE };
+    }
+  },
+
+  async completePasswordReset(newPassword: string): Promise<{ success: boolean; message: string }> {
+    const pass = newPassword.trim();
+    if (pass.length < 8) {
+      return { success: false, message: 'A nova senha deve ter pelo menos 8 caracteres.' };
+    }
+    try {
+      const { error } = await supabase.auth.updateUser({ password: pass });
+      if (error) {
+        return { success: false, message: 'O link expirou ou já foi usado. Peça um novo na tela de login.' };
+      }
+      await supabase.rpc('sigef_set_own_password_hash', { p_new_password: pass });
+      await supabase.auth.signOut().catch(() => {});
+      return { success: true, message: 'Senha redefinida! Entre com a nova senha.' };
+    } catch {
+      return { success: false, message: AUTH_UNAVAILABLE };
+    }
   },
 
   logout(): void {
@@ -884,8 +912,8 @@ export const sigefStorage = {
       return { success: false, message: 'Informe a senha atual.' };
     }
 
-    if (!newPassword || newPassword.trim().length < 4) {
-      return { success: false, message: 'A nova senha deve possuir pelo menos 4 caracteres.' };
+    if (!newPassword || newPassword.trim().length < 8) {
+      return { success: false, message: 'A nova senha deve possuir pelo menos 8 caracteres.' };
     }
 
     // A senha atual é conferida contra o hash dentro do banco; o navegador não
