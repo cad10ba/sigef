@@ -525,7 +525,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenSupabaseModal}
               className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/25 text-xs font-semibold transition-colors"
-              title="Banco de Dados Supabase (hvzvhqgfcozaprywordg) - Exclusivo Administrador"
+              title="Banco de Dados Supabase - Exclusivo Administrador"
             >
               <Database className="w-3.5 h-3.5 text-emerald-400" />
               <span>Supabase</span>

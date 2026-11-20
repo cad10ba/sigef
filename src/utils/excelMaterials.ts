@@ -1,5 +1,23 @@
 // A biblioteca de planilhas (~400 KB) é carregada só quando usada.
 const loadXLSX = () => import('xlsx');
+
+// Limites para uploads: planilhas vêm de usuários e são processadas no navegador.
+export const MAX_SPREADSHEET_BYTES = 5 * 1024 * 1024; // 5 MB
+export const MAX_SPREADSHEET_ROWS = 5000;
+const ALLOWED_EXTENSIONS = ['.xlsx', '.xls', '.csv'];
+
+/** Retorna uma mensagem de erro se o arquivo não puder ser importado, ou null se estiver ok. */
+export function validateSpreadsheetFile(file: { name: string; size: number }): string | null {
+  const name = file.name.toLowerCase();
+  if (!ALLOWED_EXTENSIONS.some((ext) => name.endsWith(ext))) {
+    return 'Formato não suportado. Envie um arquivo .xlsx, .xls ou .csv.';
+  }
+  if (file.size === 0) return 'O arquivo está vazio.';
+  if (file.size > MAX_SPREADSHEET_BYTES) {
+    return `O arquivo excede o limite de ${MAX_SPREADSHEET_BYTES / (1024 * 1024)} MB.`;
+  }
+  return null;
+}
 import { Material, MaterialCategory, ConservationState } from '../types/sigef';
 import { sigefStorage } from '../services/storage';
 
@@ -304,6 +322,11 @@ export async function parseMaterialsSpreadsheet(
   const warnings: string[] = [];
   const materials: Material[] = [];
 
+  const fileError = validateSpreadsheetFile(file);
+  if (fileError) {
+    return { success: false, materials: [], errors: [fileError], warnings };
+  }
+
   try {
     const XLSX = await loadXLSX();
     const buffer = await file.arrayBuffer();
@@ -323,6 +346,15 @@ export async function parseMaterialsSpreadsheet(
         success: false,
         materials: [],
         errors: ['Nenhum dado encontrado na primeira aba da planilha. Verifique se há cabeçalhos e linhas preenchidas.'],
+        warnings,
+      };
+    }
+
+    if (rawRows.length > MAX_SPREADSHEET_ROWS) {
+      return {
+        success: false,
+        materials: [],
+        errors: [`A planilha tem ${rawRows.length} linhas; o limite é ${MAX_SPREADSHEET_ROWS}. Divida o arquivo.`],
         warnings,
       };
     }
