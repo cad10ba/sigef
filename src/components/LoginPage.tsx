@@ -77,9 +77,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </div>
 
           <div className="flex items-center justify-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#1B8A4B] to-[#125830] flex items-center justify-center text-white font-black text-xl shadow-lg shadow-emerald-950/50 border border-emerald-400/30">
-              IF
-            </div>
+            <img
+              src="/logo-mark.png"
+              alt="Logo do SIGEF"
+              width={64}
+              height={54}
+              className="h-14 w-auto shrink-0 object-contain"
+            />
             <div className="text-left">
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-extrabold tracking-tight text-white">SIGEF</h1>
