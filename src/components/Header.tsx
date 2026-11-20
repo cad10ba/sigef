@@ -164,9 +164,13 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => onNavigate('inicio')}
             className="flex items-center gap-2 sm:gap-2.5 text-left group min-w-0"
           >
-            <div className="hidden min-[400px]:flex sm:flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 shrink-0 rounded-xl bg-gradient-to-br from-[#1B8A4B] to-[#22A55B] text-white font-extrabold shadow-md shadow-emerald-950/40 border border-emerald-400/30">
-              <span className="text-xs tracking-tighter font-mono">IF</span>
-            </div>
+            <img
+              src="/logo-mark.png"
+              alt="Logo do SIGEF"
+              width={40}
+              height={34}
+              className="hidden min-[400px]:block sm:block h-8 sm:h-9 w-auto shrink-0 object-contain"
+            />
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-bold text-base tracking-tight text-white group-hover:text-emerald-300 transition-colors">
