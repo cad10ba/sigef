@@ -11,13 +11,20 @@ import {
   CoefRegulation,
 } from '../types/sigef';
 
-// Credentials provided by the user
-const RAW_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || 'https://hvzvhqgfcozaprywordg.supabase.co';
-// Strip trailing /rest/v1 or /rest/v1/ if user pasted the REST endpoint URL
+// A URL e a chave publishable vêm só do ambiente (.env.local / variáveis da Vercel).
+// A chave publishable é pública por desenho; a proteção dos dados é o RLS.
+const RAW_URL = import.meta.env?.VITE_SUPABASE_URL as string | undefined;
+const RAW_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY as string | undefined;
+
+if (!RAW_URL || !RAW_KEY) {
+  throw new Error(
+    'Configuração ausente: defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY (veja .env.example).',
+  );
+}
+
+// Remove o sufixo /rest/v1 caso a URL do endpoint REST tenha sido colada
 export const SUPABASE_URL = RAW_URL.replace(/\/rest\/v1\/?$/, '').trim();
-export const SUPABASE_ANON_KEY =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
-  'sb_publishable_q19GlvrpfNFaSTSbwhmDtw_uirJ3PNW';
+export const SUPABASE_ANON_KEY = RAW_KEY.trim();
 
 export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -26,7 +33,7 @@ export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON
   },
 });
 
-export const SUPABASE_PROJECT_ID = 'hvzvhqgfcozaprywordg';
+export const SUPABASE_PROJECT_ID = new URL(SUPABASE_URL).hostname.split('.')[0];
 
 export const REQUIRED_TABLES = [
   'spaces',
