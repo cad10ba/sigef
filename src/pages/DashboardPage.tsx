@@ -7,7 +7,6 @@ import {
   UserRole,
 } from '../types/sigef';
 import { sigefStorage } from '../services/storage';
-import { getSpaceStatusBadge, formatDateBR } from '../utils/formatters';
 import { useToast } from '../components/Toast';
 import {
   ScanLine,
@@ -32,19 +31,16 @@ import {
 interface DashboardPageProps {
   onNavigate: (tab: ActiveTab) => void;
   onOpenTerminalLoan: () => void;
-  onOpenNewReservation: (spaceId?: string) => void;
   userRole: UserRole;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   onNavigate,
   onOpenTerminalLoan,
-  onOpenNewReservation,
   userRole,
 }) => {
   const { showToast } = useToast();
   const spaces = sigefStorage.getSpaces();
-  const reservations = sigefStorage.getReservations();
   const materials = sigefStorage.getMaterials();
   const kits = sigefStorage.getKits();
   const loans = sigefStorage.getLoans();
@@ -56,10 +52,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const overdueLoans = loans.filter((l) => l.status === 'atrasado');
   const readyKits = kits.filter((k) => k.status === 'pronto');
   const totalMaterials = materials.reduce((acc, m) => acc + m.totalQuantity, 0);
-
-  // Today's reservations
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayReservations = reservations.filter((r) => r.date === todayStr);
 
   // Occupancy rate calculation (approx: slots occupied today / total capacity)
   const totalOccupiedSpaces = spaces.filter((s) => s.status === 'em_uso' || s.status === 'reservado').length;
@@ -321,151 +313,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <span className="mt-1 text-[10px] text-rose-400/80">Requer notificação</span>
         </div>
       </div>
-
-      {/* Espaços em Atividade Hoje */}
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <h3 className="text-base sm:text-lg font-bold text-white">
-              Espaços Esportivos em Atividade Hoje
-            </h3>
-            <p className="text-xs text-slate-400">
-              Acompanhamento em tempo real de ocupação, aulas agendadas e manutenção
-            </p>
-          </div>
-          <button
-            onClick={() => onNavigate('espacos')}
-            className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
-          >
-            <span>Ver grade completa</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {spaces.length === 0 ? (
-            <div className="col-span-full p-8 text-center rounded-2xl bg-[#102027] border border-white/10">
-              <CalendarDays className="w-10 h-10 mx-auto text-slate-500 mb-2 opacity-50" />
-              <p className="text-sm font-semibold text-white">Nenhum espaço esportivo cadastrado no campus.</p>
-              <p className="text-xs text-slate-400 mt-1 mb-4">
-                Cadastre as quadras, campos e salas do complexo esportivo para acompanhar as atividades.
-              </p>
-              <button
-                onClick={() => onNavigate('espacos')}
-                className="px-4 py-2 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-xl shadow-md transition-colors"
-              >
-                + Cadastrar Espaço Físico
-              </button>
-            </div>
-          ) : (
-            spaces.map((space) => {
-            const badge = getSpaceStatusBadge(space.status);
-            // Check if there is an active reservation right now
-            const spaceResToday = todayReservations.filter((r) => r.spaceId === space.id);
-            const activeRes = spaceResToday[0];
-
-            return (
-              <div
-                key={space.id}
-                className="rounded-2xl bg-[#102027] border border-white/10 overflow-hidden flex flex-col justify-between shadow-lg hover:border-white/20 transition-all"
-              >
-                {/* Photo / Visual Fallback */}
-                <div className="relative h-36 w-full bg-slate-900 overflow-hidden">
-                  {space.photo ? (
-                    <img
-                      src={space.photo}
-                      alt={space.name}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 text-slate-600">
-                      <CalendarDays className="w-12 h-12 opacity-30" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#102027] via-transparent to-black/30" />
-
-                  {/* Status badge */}
-                  <div className="absolute top-3 right-3">
-                    <span
-                      className={`text-xs font-bold px-2.5 py-1 rounded-full border backdrop-blur-md ${badge.bgClass} ${badge.textClass} ${badge.borderClass}`}
-                    >
-                      {badge.label}
-                    </span>
-                  </div>
-
-                  {/* Capacity */}
-                  <div className="absolute bottom-2 left-3 text-[11px] text-slate-300 font-medium">
-                    Capacidade: <span className="font-bold text-white font-mono">{space.capacity}</span> pessoas
-                  </div>
-                </div>
-
-                {/* Card Body */}
-                <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                  <div>
-                    <h4 className="font-bold text-sm sm:text-base text-white">{space.name}</h4>
-                    <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{space.notes}</p>
-                  </div>
-
-                  {/* Current Activity Box */}
-                  <div className="p-2.5 rounded-xl bg-[#0B1418] border border-white/5 text-xs space-y-1">
-                    {space.status === 'manutencao' ? (
-                      <div className="text-amber-300">
-                        <span className="font-semibold block">Em Manutenção Preventiva:</span>
-                        <p className="text-[11px] text-slate-400">{space.maintenanceReason || 'Revisão técnica'}</p>
-                        {space.maintenanceOs && (
-                          <span className="text-[10px] font-mono text-amber-400 font-bold block mt-0.5">
-                            {space.maintenanceOs} • Retorno em {formatDateBR(space.maintenanceUntil)}
-                          </span>
-                        )}
-                      </div>
-                    ) : activeRes ? (
-                      <div>
-                        <div className="flex items-center justify-between text-slate-300">
-                          <span className="font-semibold text-white">{activeRes.sport}</span>
-                          <span className="font-mono text-emerald-400 font-bold">
-                            {activeRes.startTime} - {activeRes.endTime}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-400 truncate">{activeRes.groupOrClass}</p>
-                        <p className="text-[10px] text-slate-500">Docente: {activeRes.teacherName}</p>
-                      </div>
-                    ) : (
-                      <div className="text-slate-400 text-center py-1">
-                        <span>Nenhuma reserva ativa neste momento.</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Card Actions */}
-                  <div className="pt-1 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400">
-                      {space.allowedSports.slice(0, 2).join(', ')}
-                      {space.allowedSports.length > 2 && '…'}
-                    </span>
-
-                    {space.status === 'livre' ? (
-                      <button
-                        onClick={() => onOpenNewReservation(space.id)}
-                        className="px-3 py-1.5 bg-[#1B8A4B] hover:bg-[#22A55B] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
-                      >
-                        Reservar Agora
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => onNavigate('espacos')}
-                        className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium rounded-lg transition-colors"
-                      >
-                        Ver Horários
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          }))}
-        </div>
-      </section>
 
       {/* Mural da Coordenação (Official Notice Board) */}
       <section className="p-5 sm:p-6 rounded-2xl bg-[#102027] border border-white/10 shadow-xl space-y-4">
