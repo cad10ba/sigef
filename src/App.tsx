@@ -220,7 +220,6 @@ export default function App() {
               <DashboardPage
                 onNavigate={(tab) => setActiveTab(tab)}
                 onOpenTerminalLoan={() => handleOpenNewLoan()}
-                onOpenNewReservation={(spaceId) => handleOpenNewReservation(spaceId)}
                 userRole={currentUser.role}
               />
             )}
